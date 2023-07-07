@@ -15,7 +15,6 @@ LABEL maintainer="jiangtingqiang@gmail.com"
 WORKDIR /app
 ENV ROCKET_ADDRESS=0.0.0.0
 # ENV ROCKET_PORT=11014
-COPY --from=builder /home/rust/src/.env /app
 COPY --from=builder /home/rust/src/settings.toml /app
 #
 # only copy the execute file to minimal the image size
