@@ -1,6 +1,7 @@
 use std::{time::Duration};
 
 use celery::{task::{TaskResult, TaskResultExt}};
+use log::info;
 use structopt::StructOpt;
 use tokio::time::{self};
 
@@ -9,6 +10,7 @@ use crate::rss::models::appenum::celery_opt::CeleryOpt;
 // This generates the task struct and impl with the name set to the function name "add"
 #[celery::task]
 fn add(x: i32, y: i32) -> TaskResult<i32> {
+    info!("consumed message:{}{}",x,y);
     Ok(x + y)
 }
 
@@ -43,9 +45,10 @@ fn bound_task(task: &Self) {
 
 pub async fn init_impl() -> Result<(), Box<dyn std::error::Error>>{
     let opt = CeleryOpt::from_args();
-
+    let redis_addr = std::env::var("REDIS_ADDR").unwrap_or_else(|_| "redis://127.0.0.1:6379/".into());
+    info!("redis addr:{}",redis_addr);
     let my_app = celery::app!(
-        broker = RedisBroker { std::env::var("REDIS_ADDR").unwrap_or_else(|_| "redis://127.0.0.1:6379/".into()) },
+        broker = RedisBroker { redis_addr },
         // broker = AMQPBroker { std::env::var("AMQP_ADDR").unwrap_or_else(|_| "amqp://127.0.0.1:5672".into()) },
         tasks = [
             add,
@@ -60,7 +63,7 @@ pub async fn init_impl() -> Result<(), Box<dyn std::error::Error>>{
             "*" => "celery",
         ],
         prefetch_count = 2,
-        heartbeat = Some(10),
+        heartbeat = Some(10)
     ).await?;
 
     match opt {
