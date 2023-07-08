@@ -12,3 +12,5 @@ serde = { version = "1.0.64", features = ["derive"] }
 anyhow = "1.0.71"
 async-trait = "0.1.71"
 log = "0.4.0"
+openssl = "*"
+openssl-probe = "0.1.2"
