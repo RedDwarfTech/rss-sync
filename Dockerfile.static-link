@@ -16,9 +16,9 @@ WORKDIR /app
 ENV ROCKET_ADDRESS=0.0.0.0
 # ENV ROCKET_PORT=11014
 COPY --from=builder /home/rust/src/settings.toml /app
-COPY --from=builder /home/rust/src/scripts /app
+COPY --from=builder /home/rust/src/scripts /app/
 #
 # only copy the execute file to minimal the image size
 # do not copy the release folder
 COPY --from=builder /home/rust/src/target/x86_64-unknown-linux-musl/release/rss-sync /app/
-CMD ["./scripts/startup-app.sh"]
+CMD ["./startup-app.sh"]
