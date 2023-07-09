@@ -10,7 +10,7 @@ ADD --chown=rust:rust . ./
 RUN cargo build --release
 
 # do not use slim image, will block when query database
-FROM gcr.io/distroless/static-debian11
+FROM alpine:3.18.2
 LABEL maintainer="jiangtingqiang@gmail.com"
 WORKDIR /app
 ENV ROCKET_ADDRESS=0.0.0.0
