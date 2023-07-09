@@ -1,5 +1,7 @@
 #![allow(non_upper_case_globals)]
 extern crate openssl;
+#[macro_use]
+extern crate diesel;
 
 use env_logger::Env;
 use rss::{sched::scheduler::check_tpl_task, celery::celery_init::init_impl};
@@ -7,6 +9,7 @@ use structopt::StructOpt;
 use crate::rss::{ models::appenum::celery_opt::CeleryOpt};
 
 pub mod rss;
+pub mod model;
 
 #[tokio::main]
 async fn main() {

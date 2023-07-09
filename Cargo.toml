@@ -13,4 +13,8 @@ anyhow = "1.0.71"
 async-trait = "0.1.71"
 log = "0.4.0"
 openssl = "*"
+serde_json = "1.0.64"
 openssl-probe = "0.1.2"
+diesel = { version = "2.0.4", features = ["postgres","64-column-tables","chrono","serde_json"] }
+chrono = {version = "0.4",features = ["serde"]}
+rust_wheel = { git = "https://github.com/jiangxiaoqiang/rust_wheel.git", branch = "diesel2.0", features = ["model","common","rwconfig"]}
