@@ -9,7 +9,7 @@ fn add(x: i32, y: i32) -> TaskResult<i32> {
     Ok(x + y)
 }
 
-pub async fn init_impl(opt: CeleryOpt) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub async fn init_impl(opt: &CeleryOpt) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let redis_addr =
         std::env::var("REDIS_ADDR").unwrap_or_else(|_| "redis://127.0.0.1:6379/".into());
     info!("redis addr:{}", redis_addr);

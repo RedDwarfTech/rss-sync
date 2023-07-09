@@ -6,6 +6,6 @@ set -e
 
 set -x
 
-./rss-sync consume 
+nohup ./rss-sync consume > consume.log &!
 
-./rss-sync produce add 
+nohup ./rss-sync produce add > produce.log &!

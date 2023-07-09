@@ -2,27 +2,23 @@
 extern crate openssl;
 
 use env_logger::Env;
-use log::{error, info};
-use rss::sched::scheduler::check_tpl_task;
-use crate::rss::{celery::celery_init::init_impl, models::appenum::celery_opt::CeleryOpt};
+use rss::{sched::scheduler::check_tpl_task, celery::celery_init::init_impl};
+use structopt::StructOpt;
+use crate::rss::{ models::appenum::celery_opt::CeleryOpt};
 
 pub mod rss;
 
 #[tokio::main]
 async fn main() {
-    env_logger::from_env(Env::default().default_filter_or("info")).init();
-    check_tpl_task().await;
-}
-
-async fn test_mulit_thread() {
-    let mut thread_list = vec![];
-    for i in 0..10 {
-        let thandle = tokio::spawn(async move {
-            
-        });
-        thread_list.push(thandle);
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    let opt = CeleryOpt::from_args();
+    match &opt {
+        CeleryOpt::Consume => {
+            let _result = init_impl(&opt).await;
+        },
+        CeleryOpt::Produce { tasks:_ } => {
+            check_tpl_task(&opt).await;
+        },
     }
-    for handle in thread_list {
-        handle.await.unwrap();
-    }
+    
 }
