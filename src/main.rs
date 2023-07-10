@@ -3,7 +3,6 @@ extern crate openssl;
 #[macro_use]
 extern crate diesel;
 
-use crate::cruise::channel::rss_channel::fetch_channel_article;
 use crate::cruise::models::appenum::celery_opt::CeleryOpt;
 use cruise::celery::celery_init::init_impl;
 use cruise::sched::scheduler::check_tpl_task;
