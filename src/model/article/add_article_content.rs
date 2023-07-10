@@ -12,14 +12,14 @@ pub struct AddArticleContent {
 }
 
 impl AddArticleContent {
-    pub(crate) fn _from_atom_entry(request: &Entry) ->Self {
+    pub(crate) fn from_atom_entry(request: &Entry) ->Self {
         Self {
             article_id: 1,
-            content: request.content.clone().unwrap().body.unwrap(),
+            content: request.content.clone().unwrap_or_default().body.unwrap(),
         }
     }
 
-    pub(crate) fn _from_rss_entry(request: &Item) ->Self {
+    pub(crate) fn from_rss_entry(request: &Item) ->Self {
         Self {
             article_id: 1,
             content: request.content.clone().unwrap(),

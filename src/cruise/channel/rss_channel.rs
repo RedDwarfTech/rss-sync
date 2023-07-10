@@ -10,7 +10,7 @@ use rss::Channel;
 use crate::{
     common::database::get_connection,
     model::article::{add_article::AddArticle, add_article_content::AddArticleContent},
-    service::article::article_service::insert_article,
+    service::article::{article_service::insert_article, article_content_service::insert_article_content},
 };
 
 pub async fn fetch_channel_article() {
@@ -26,14 +26,13 @@ pub async fn fetch_channel_article() {
     match result {
         Ok(body) => {
             let body_str = body.as_str();
-            print!("{}", body_str);
             let channel1 = "<rss";
             if body_str.contains(channel1) {
                 let channel = Channel::read_from(body.as_bytes()).unwrap();
-                _save_rss_channel_article(channel);
+                save_rss_channel_article(channel);
             } else if body_str.contains("<feed") {
-                let _feed: Feed = parser::parse(body.as_bytes()).unwrap();
-                _save_atom_channel_article(_feed);
+                let feed: Feed = parser::parse(body.as_bytes()).unwrap();
+                save_atom_channel_article(feed);
             } else {
                 error!("unknown sub format");
             }
@@ -44,35 +43,42 @@ pub async fn fetch_channel_article() {
     }
 }
 
-fn _save_rss_channel_article(_channel: Channel) {
-    if _channel.items.is_empty() {
+fn save_rss_channel_article(channel: Channel) {
+    if channel.items.is_empty() {
         return;
     }
-    _channel.items.iter().for_each(|item| {
-        println!("{}", "item.title");
-        let _article: AddArticle = AddArticle::_from_rss_entry(item);
-        let article_content = AddArticleContent::_from_rss_entry(item);
-        save_article_impl(&_article, &article_content);
+    channel.items.iter().for_each(|item| {
+        let article: AddArticle = AddArticle::from_rss_entry(item);
+        let mut article_content = AddArticleContent::from_rss_entry(item);
+        save_article_impl(&article, &mut article_content);
     });
 }
 
-fn _save_atom_channel_article(feed: Feed) {
+fn save_atom_channel_article(feed: Feed) {
     if feed.entries.is_empty() {
         return;
     }
     feed.entries.iter().for_each(|item| {
-        println!("{}", "item.title");
-        let _article: AddArticle = AddArticle::_from_atom_entry(item);
-        let article_content = AddArticleContent::_from_atom_entry(item);
-        save_article_impl(&_article, &article_content);
+        let _article: AddArticle = AddArticle::from_atom_entry(item);
+        let mut article_content = AddArticleContent::from_atom_entry(item);
+        save_article_impl(&_article, &mut article_content);
+
     });
 }
 
-fn save_article_impl(add_article: &AddArticle, add_article_content: &AddArticleContent) {
+fn save_article_impl(add_article: &AddArticle, add_article_content: &mut AddArticleContent) {
     let mut connection = get_connection();
     let _result = connection.transaction(|_connection| {
-        let add_result = insert_article(add_article, add_article_content);
-        return add_result;
+        let add_result = insert_article(add_article);
+        match add_result {
+            Ok(inserted_article) => {
+                add_article_content.article_id = inserted_article.id;
+                return insert_article_content(add_article_content);
+            },
+            Err(e) => {
+                diesel::result::QueryResult::Err(e)
+            },
+        }
     });
 }
 

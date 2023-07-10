@@ -27,7 +27,7 @@ pub struct AddArticle {
 }
 
 impl AddArticle {
-    pub(crate) fn _from_atom_entry(request: &Entry) ->Self {
+    pub(crate) fn from_atom_entry(request: &Entry) ->Self {
         Self {
             user_id: 1,
             title: request.title.clone().unwrap().content,
@@ -45,7 +45,7 @@ impl AddArticle {
         }
     }
 
-    pub(crate) fn _from_rss_entry(request: &Item) ->Self {
+    pub(crate) fn from_rss_entry(request: &Item) ->Self {
         Self {
             user_id: 1,
             title: request.title.clone().unwrap(),
