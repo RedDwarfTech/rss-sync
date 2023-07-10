@@ -9,13 +9,13 @@ use rss::Channel;
 
 use crate::{
     common::database::get_connection,
-    model::article::{add_article::AddArticle, add_article_content::AddArticleContent},
+    model::{article::{add_article::AddArticle, add_article_content::AddArticleContent}, diesel::dolphin::custom_dolphin_models::RssSubSource},
     service::article::{article_service::insert_article, article_content_service::insert_article_content},
 };
 
-pub async fn fetch_channel_article() {
+pub async fn fetch_channel_article(source: RssSubSource) {
     let client = Client::new();
-    let url = "https://stackoverflow.com/feeds/user/2628868";
+    let url: &str = &source.source_url.clone().unwrap();
     let response = client
         .get(url)
         .headers(construct_headers())

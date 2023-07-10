@@ -1,13 +1,21 @@
 use celery::task::TaskResult;
 use log::info;
 
-use crate::cruise::{models::appenum::celery_opt::CeleryOpt, channel::rss_channel::fetch_channel_article};
+use crate::{cruise::{models::appenum::celery_opt::CeleryOpt, channel::rss_channel::fetch_channel_article}, service::channel::channel_service::get_channel_by_id};
 
 #[celery::task]
-async fn add(x: i32, y: i32) -> TaskResult<i32> {
+async fn add(x: i64, y: i32) -> TaskResult<i64> {
     info!("consumed message:{}{}", x, y);
-    fetch_channel_article().await;
-    Ok(x + y)
+    handle_add(x).await;
+    Ok(x)
+}
+
+async fn handle_add(channel_id: i64){
+    let channel = get_channel_by_id(channel_id);
+    if channel.is_empty() {
+        return;
+    }
+    fetch_channel_article(channel[0].clone()).await;
 }
 
 pub async fn init_impl(opt: &CeleryOpt) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {

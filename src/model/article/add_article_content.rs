@@ -15,7 +15,7 @@ impl AddArticleContent {
     pub(crate) fn from_atom_entry(request: &Entry) ->Self {
         Self {
             article_id: 1,
-            content: request.content.clone().unwrap_or_default().body.unwrap(),
+            content: request.content.clone().unwrap_or_default().body.unwrap_or_default(),
         }
     }
 
