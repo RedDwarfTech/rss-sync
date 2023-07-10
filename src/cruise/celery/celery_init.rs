@@ -22,7 +22,7 @@ pub async fn init_impl(opt: &CeleryOpt) -> Result<(), Box<dyn std::error::Error 
     let redis_addr =
         std::env::var("REDIS_ADDR").unwrap_or_else(|_| "redis://127.0.0.1:6379/".into());
     info!("redis addr:{}", redis_addr);
-    let my_app = celery::app!(
+    let rss_app = celery::app!(
         broker = RedisBroker { redis_addr },
         tasks = [
             add
@@ -38,8 +38,8 @@ pub async fn init_impl(opt: &CeleryOpt) -> Result<(), Box<dyn std::error::Error 
 
     match opt {
         CeleryOpt::Consume => {
-            my_app.display_pretty().await;
-            my_app.consume_from(&["celery", "buggy-queue"]).await?;
+            rss_app.display_pretty().await;
+            rss_app.consume_from(&["celery", "buggy-queue"]).await?;
         }
         CeleryOpt::Produce { tasks } => {
             if tasks.is_empty() {
@@ -51,7 +51,7 @@ pub async fn init_impl(opt: &CeleryOpt) -> Result<(), Box<dyn std::error::Error 
                           let refresh_rss:Vec<RssSubSource> =  get_fresh_channel();
                           if !refresh_rss.is_empty() {
                             let rss_id = refresh_rss[0].clone();
-                            my_app.send_task(add::new(rss_id.id, 2)).await?;
+                            rss_app.send_task(add::new(rss_id.id, 2)).await?;
                           }
                         },
                         _ => panic!("unknown task"),
@@ -61,6 +61,6 @@ pub async fn init_impl(opt: &CeleryOpt) -> Result<(), Box<dyn std::error::Error 
         }
     };
 
-    my_app.close().await?;
+    rss_app.close().await?;
     Ok(())
 }
