@@ -5,6 +5,8 @@ file = "../../src/model/diesel/dolphin/dolphin_schema.rs"
 with_docs = false
 
 filter = { only_tables = [
-    "rss_sub_source"
+    "rss_sub_source",
+    "article",
+    "article_content"
 ] }
 
