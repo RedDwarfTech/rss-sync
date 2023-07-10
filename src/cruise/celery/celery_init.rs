@@ -1,7 +1,7 @@
 use celery::task::TaskResult;
 use log::info;
 
-use crate::{cruise::{models::appenum::celery_opt::CeleryOpt, channel::rss_channel::fetch_channel_article}, service::channel::channel_service::get_channel_by_id};
+use crate::{cruise::{models::appenum::celery_opt::CeleryOpt, channel::rss_channel::fetch_channel_article}, service::channel::channel_service::{get_channel_by_id, get_fresh_channel}, model::diesel::dolphin::custom_dolphin_models::RssSubSource};
 
 #[celery::task]
 async fn add(x: i64, y: i32) -> TaskResult<i64> {
@@ -43,11 +43,17 @@ pub async fn init_impl(opt: &CeleryOpt) -> Result<(), Box<dyn std::error::Error 
         }
         CeleryOpt::Produce { tasks } => {
             if tasks.is_empty() {
-                my_app.send_task(add::new(1, 2)).await?;
+                
             } else {
                 for task in tasks {
                     match task.as_str() {
-                        "add" => my_app.send_task(add::new(1, 2)).await?,
+                        "add" => {
+                          let refresh_rss:Vec<RssSubSource> =  get_fresh_channel();
+                          if !refresh_rss.is_empty() {
+                            let rss_id = refresh_rss[0].clone();
+                            my_app.send_task(add::new(rss_id.id, 2)).await?;
+                          }
+                        },
                         _ => panic!("unknown task"),
                     };
                 }
