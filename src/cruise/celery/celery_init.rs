@@ -1,7 +1,7 @@
 use celery::task::TaskResult;
 use log::info;
 
-use crate::rss::models::appenum::celery_opt::CeleryOpt;
+use crate::cruise::models::appenum::celery_opt::CeleryOpt;
 
 #[celery::task]
 fn add(x: i32, y: i32) -> TaskResult<i32> {

@@ -3,7 +3,7 @@ use std::time::Duration;
 use log::{info, error};
 use tokio::time;
 
-use crate::rss::{celery::celery_init::init_impl, models::appenum::celery_opt::CeleryOpt};
+use crate::cruise::{celery::celery_init::init_impl, models::appenum::celery_opt::CeleryOpt};
 
 pub async fn check_tpl_task(opt: &CeleryOpt) {
     let mut interval = time::interval(Duration::from_millis(5000));
