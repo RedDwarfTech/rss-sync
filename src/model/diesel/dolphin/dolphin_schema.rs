@@ -1,4 +1,31 @@
 table! {
+    article (id) {
+        id -> Int8,
+        user_id -> Int8,
+        title -> Varchar,
+        author -> Varchar,
+        guid -> Varchar,
+        created_time -> Int8,
+        updated_time -> Int8,
+        link -> Nullable<Varchar>,
+        pub_time -> Nullable<Timestamptz>,
+        sub_source_id -> Int8,
+        cover_image -> Nullable<Varchar>,
+        channel_reputation -> Int4,
+        editor_pick -> Nullable<Int4>,
+        permanent_store -> Int2,
+    }
+}
+
+table! {
+    article_content (id) {
+        id -> Int8,
+        article_id -> Int8,
+        content -> Varchar,
+    }
+}
+
+table! {
     rss_sub_source (id) {
         id -> Int8,
         sub_url -> Varchar,
@@ -40,3 +67,9 @@ table! {
         part_output -> Int4,
     }
 }
+
+allow_tables_to_appear_in_same_query!(
+    article,
+    article_content,
+    rss_sub_source,
+);

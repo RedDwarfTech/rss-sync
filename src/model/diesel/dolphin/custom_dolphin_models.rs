@@ -53,3 +53,29 @@ pub struct RssSubSource {
     pub part_output: i32,
 }
 
+#[derive(Insertable,Queryable,QueryableByName,Debug,Serialize,Deserialize,Default,Clone)]
+#[diesel(table_name = article)]
+pub struct Article {
+    pub id: i64,
+    pub user_id: i64,
+    pub title: String,
+    pub author: String,
+    pub guid: String,
+    pub created_time: i64,
+    pub updated_time: i64,
+    pub link: Option<String>,
+    pub pub_time: Option<DateTime<Utc>>,
+    pub sub_source_id: i64,
+    pub cover_image: Option<String>,
+    pub channel_reputation: i32,
+    pub editor_pick: Option<i32>,
+    pub permanent_store: i16,
+}
+
+#[derive(Insertable,Queryable,QueryableByName,Debug,Serialize,Deserialize,Default,Clone)]
+#[diesel(table_name = article_content)]
+pub struct ArticleContent {
+    pub id: i64,
+    pub article_id: i64,
+    pub content: String,
+}

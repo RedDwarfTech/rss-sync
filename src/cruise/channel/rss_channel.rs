@@ -1,7 +1,9 @@
-use feed_rs::parser;
+use feed_rs::{parser, model::Feed};
 use log::error;
 use reqwest::{Client, header::{HeaderMap, HeaderValue}};
 use rss::Channel;
+
+use crate::model::{ article::add_article::AddArticle};
 
 pub async fn fetch_channel_article() {
     let client = Client::new();
@@ -25,7 +27,7 @@ pub async fn fetch_channel_article() {
                     }
                 }
             } else if body_str.contains("<feed") {
-                let feed = parser::parse(body.as_bytes()).unwrap();
+                let _feed:Feed = parser::parse(body.as_bytes()).unwrap();
                 print!("atom");
             } else {
                 error!("unknown sub format");
@@ -37,6 +39,20 @@ pub async fn fetch_channel_article() {
     }
 }
 
+fn _save_rss_channel_article(_channel: Channel) {
+    
+
+}
+
+fn _save_atom_channel_article(feed: Feed) {
+    if feed.entries.is_empty() {
+        return;
+    }
+    feed.entries.iter().for_each(|item| {
+        println!("{}", "item.title");
+        let _article: AddArticle = AddArticle::_from_atom_entry(item);
+    });
+}
 
 fn construct_headers() -> HeaderMap {
     let mut headers = HeaderMap::new();
