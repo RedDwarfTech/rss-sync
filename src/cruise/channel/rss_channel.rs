@@ -1,9 +1,11 @@
+
+use diesel::Connection;
 use feed_rs::{parser, model::Feed};
-use log::error;
+use log::{error};
 use reqwest::{Client, header::{HeaderMap, HeaderValue}};
 use rss::Channel;
 
-use crate::model::{ article::add_article::AddArticle};
+use crate::{model::{ article::{add_article::AddArticle, add_article_content::AddArticleContent}}, common::database::get_connection, service::article::article_service::insert_article};
 
 pub async fn fetch_channel_article() {
     let client = Client::new();
@@ -16,19 +18,11 @@ pub async fn fetch_channel_article() {
             print!("{}",body_str);
             let channel1 = "<rss";
             if body_str.contains(channel1) {
-                let channel = Channel::read_from(body.as_bytes());
-                match channel {
-                    Ok(c) => {
-                        println!("Title: {}", c.title);
-                        println!("Number of items: {}", c.items.len());
-                    }
-                    Err(e) => {
-                        print!("error,{}", e)
-                    }
-                }
+                let channel = Channel::read_from(body.as_bytes()).unwrap();
+                _save_rss_channel_article(channel);
             } else if body_str.contains("<feed") {
                 let _feed:Feed = parser::parse(body.as_bytes()).unwrap();
-                print!("atom");
+                _save_atom_channel_article(_feed);
             } else {
                 error!("unknown sub format");
             }
@@ -40,8 +34,15 @@ pub async fn fetch_channel_article() {
 }
 
 fn _save_rss_channel_article(_channel: Channel) {
-    
-
+    if _channel.items.is_empty() {
+        return;
+    }
+    _channel.items.iter().for_each(|item| {
+        println!("{}", "item.title");
+        let _article: AddArticle = AddArticle::_from_rss_entry(item);
+        let article_content = AddArticleContent::_from_rss_entry(item);
+        save_article_impl(&_article, &article_content);
+    });
 }
 
 fn _save_atom_channel_article(feed: Feed) {
@@ -51,6 +52,16 @@ fn _save_atom_channel_article(feed: Feed) {
     feed.entries.iter().for_each(|item| {
         println!("{}", "item.title");
         let _article: AddArticle = AddArticle::_from_atom_entry(item);
+        let article_content = AddArticleContent::_from_atom_entry(item);
+        save_article_impl(&_article, &article_content);
+    });
+}
+
+fn save_article_impl(add_article: &AddArticle, add_article_content: &AddArticleContent) {
+    let mut connection = get_connection();
+    let _result = connection.transaction(|_connection| {
+        let add_result = insert_article(add_article,add_article_content);
+        return add_result;
     });
 }
 
