@@ -94,8 +94,13 @@ fn save_article_impl(add_article: &AddArticle, add_article_content: &mut AddArti
         let add_result = insert_article(add_article);
         match add_result {
             Ok(inserted_article) => {
-                add_article_content.article_id = inserted_article.id;
-                return insert_article_content(add_article_content);
+                match inserted_article {
+                    Some(ia) => {
+                        add_article_content.article_id = ia.id;
+                        return insert_article_content(add_article_content);
+                    },
+                    None => todo!(),
+                }
             }
             Err(e) => {
                 error!("insert article error,{}", e);
