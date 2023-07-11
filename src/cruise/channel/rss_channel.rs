@@ -15,7 +15,7 @@ use crate::{
 
 pub async fn fetch_channel_article(source: RssSubSource) {
     let client = Client::new();
-    let url: &str = &source.source_url.clone().unwrap();
+    let url: &str = &source.sub_url.clone();
     let response = client
         .get(url)
         .headers(construct_headers())

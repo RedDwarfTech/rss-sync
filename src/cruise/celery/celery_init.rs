@@ -1,5 +1,5 @@
 use celery::task::TaskResult;
-use log::info;
+use log::{info, error};
 
 use crate::{cruise::{models::appenum::celery_opt::CeleryOpt, channel::rss_channel::fetch_channel_article}, service::channel::channel_service::{get_channel_by_id, get_fresh_channel}, model::diesel::dolphin::custom_dolphin_models::RssSubSource};
 
@@ -21,7 +21,6 @@ async fn handle_add(channel_id: i64){
 pub async fn init_impl(opt: &CeleryOpt) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let redis_addr =
         std::env::var("REDIS_ADDR").unwrap_or_else(|_| "redis://127.0.0.1:6379/".into());
-    info!("redis addr:{}", redis_addr);
     let rss_app = celery::app!(
         broker = RedisBroker { redis_addr },
         tasks = [
@@ -32,7 +31,7 @@ pub async fn init_impl(opt: &CeleryOpt) -> Result<(), Box<dyn std::error::Error 
             "*" => "celery",
         ],
         prefetch_count = 2,
-        heartbeat = Some(10)
+        heartbeat = Some(30)
     )
     .await?;
 
@@ -54,7 +53,7 @@ pub async fn init_impl(opt: &CeleryOpt) -> Result<(), Box<dyn std::error::Error 
                             rss_app.send_task(add::new(rss_id.id, 2)).await?;
                           }
                         },
-                        _ => panic!("unknown task"),
+                        _ => error!("unknown task"),
                     };
                 }
             }
