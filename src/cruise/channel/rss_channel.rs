@@ -74,7 +74,6 @@ fn save_atom_channel_article(feed: Feed) {
         let _article: AddArticle = AddArticle::from_atom_entry(item);
         let mut article_content = AddArticleContent::from_atom_entry(item);
         save_article_impl(&_article, &mut article_content);
-
     });
 }
 
@@ -88,6 +87,7 @@ fn save_article_impl(add_article: &AddArticle, add_article_content: &mut AddArti
                 return insert_article_content(add_article_content);
             },
             Err(e) => {
+                error!("insert article error,{}", e);
                 diesel::result::QueryResult::Err(e)
             },
         }
