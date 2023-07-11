@@ -22,7 +22,7 @@ impl AddArticleContent {
     pub(crate) fn from_rss_entry(request: &Item) ->Self {
         Self {
             article_id: 1,
-            content: request.content.clone().unwrap(),
+            content: request.content.clone().unwrap_or_default(),
         }
     }
 }

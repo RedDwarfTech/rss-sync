@@ -25,21 +25,33 @@ pub async fn fetch_channel_article(source: RssSubSource) {
     let result = response.text().await;
     match result {
         Ok(body) => {
-            let body_str = body.as_str();
-            let channel1 = "<rss";
-            if body_str.contains(channel1) {
-                let channel = Channel::read_from(body.as_bytes()).unwrap();
-                save_rss_channel_article(channel);
-            } else if body_str.contains("<feed") {
-                let feed: Feed = parser::parse(body.as_bytes()).unwrap();
-                save_atom_channel_article(feed);
-            } else {
-                error!("unknown sub format");
-            }
+            let rss_type_str = &source.rss_type;
+            match rss_type_str.as_str() {
+                "RSS" => {
+                    handle_rss_pull(body);
+                },
+                "ATOM" => {
+                    let feed: Feed = parser::parse(body.as_bytes()).unwrap();
+                    save_atom_channel_article(feed);
+                },
+                _ => error!("unknown rss type"),
+            }    
         }
         Err(err) => {
             print!("error,{}", err)
         }
+    }
+}
+
+fn handle_rss_pull(body: String){
+    let channel = Channel::read_from(body.as_bytes());
+    match channel  {
+        Ok(channel_result) => {
+            save_rss_channel_article(channel_result);
+        },
+        Err(_) => {
+            error!("error, pull rss channel error");
+        },
     }
 }
 
