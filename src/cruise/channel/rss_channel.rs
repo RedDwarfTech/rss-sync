@@ -3,25 +3,36 @@ use feed_rs::{model::Feed, parser};
 use log::error;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
-    Client,
+    Client, Response,
 };
 use rss::Channel;
 
 use crate::{
     common::database::get_connection,
-    model::{article::{add_article::AddArticle, add_article_content::AddArticleContent}, diesel::dolphin::custom_dolphin_models::RssSubSource},
-    service::article::{article_service::insert_article, article_content_service::insert_article_content},
+    model::{
+        article::{add_article::AddArticle, add_article_content::AddArticleContent},
+        diesel::dolphin::custom_dolphin_models::RssSubSource,
+    },
+    service::article::{
+        article_content_service::insert_article_content, article_service::insert_article,
+    },
 };
 
 pub async fn fetch_channel_article(source: RssSubSource) {
     let client = Client::new();
     let url: &str = &source.sub_url.clone();
-    let response = client
-        .get(url)
-        .headers(construct_headers())
-        .send()
-        .await
-        .unwrap();
+    let response = client.get(url).headers(construct_headers()).send().await;
+    match response {
+        Ok(resp) => {
+            handle_channel_resp(resp, source).await;
+        }
+        Err(e) => {
+            error!("pull channel facing error:{}", e)
+        }
+    }
+}
+
+async fn handle_channel_resp(response: Response, source: RssSubSource) {
     let result = response.text().await;
     match result {
         Ok(body) => {
@@ -29,13 +40,13 @@ pub async fn fetch_channel_article(source: RssSubSource) {
             match rss_type_str.as_str() {
                 "RSS" => {
                     handle_rss_pull(body);
-                },
+                }
                 "ATOM" => {
                     let feed: Feed = parser::parse(body.as_bytes()).unwrap();
                     save_atom_channel_article(feed);
-                },
+                }
                 _ => error!("unknown rss type"),
-            }    
+            }
         }
         Err(err) => {
             print!("error,{}", err)
@@ -43,15 +54,15 @@ pub async fn fetch_channel_article(source: RssSubSource) {
     }
 }
 
-fn handle_rss_pull(body: String){
+fn handle_rss_pull(body: String) {
     let channel = Channel::read_from(body.as_bytes());
-    match channel  {
+    match channel {
         Ok(channel_result) => {
             save_rss_channel_article(channel_result);
-        },
+        }
         Err(_) => {
             error!("error, pull rss channel error");
-        },
+        }
     }
 }
 
@@ -85,11 +96,11 @@ fn save_article_impl(add_article: &AddArticle, add_article_content: &mut AddArti
             Ok(inserted_article) => {
                 add_article_content.article_id = inserted_article.id;
                 return insert_article_content(add_article_content);
-            },
+            }
             Err(e) => {
                 error!("insert article error,{}", e);
                 diesel::result::QueryResult::Err(e)
-            },
+            }
         }
     });
 }
