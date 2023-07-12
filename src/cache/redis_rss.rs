@@ -3,7 +3,7 @@ use redis::{ Client, Commands, AsyncCommands};
 use rust_wheel::config::{initial::get_config, cache::redis_util::get_list_size};
 
 pub async fn async_send_article_to_stream(stream_key: &str){
-    let config_redis_string = get_config("REDIS_ADDR");
+    let config_redis_string = get_config("REDIS_URL");
     let redis_con_string: &str = config_redis_string.as_str();
     let redis_client = Client::open(redis_con_string);
     match redis_client {

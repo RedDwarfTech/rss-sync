@@ -30,7 +30,7 @@ async fn handle_add(channel_id: i64) -> bool {
 
 pub async fn init_impl(opt: &CeleryOpt) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let redis_addr =
-        std::env::var("REDIS_ADDR").unwrap_or_else(|_| "redis://127.0.0.1:6379/".into());
+        std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379/".into());
     let rss_app = celery::app!(
         broker = RedisBroker { redis_addr },
         tasks = [
