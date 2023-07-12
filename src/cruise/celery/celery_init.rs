@@ -2,7 +2,7 @@ use crate::{
     cache::redis_rss::get_task_count,
     cruise::{channel::rss_channel::fetch_channel_article, models::appenum::celery_opt::CeleryOpt},
     model::diesel::dolphin::custom_dolphin_models::RssSubSource,
-    service::channel::channel_service::{get_channel_by_id, get_fresh_channel},
+    service::channel::channel_service::{get_channel_by_id, get_fresh_channel, update_pulled_channel},
 };
 use celery::{prelude::TaskError, task::TaskResult};
 use log::{error, info};
@@ -59,8 +59,9 @@ pub async fn init_impl(opt: &CeleryOpt) -> Result<(), Box<dyn std::error::Error 
                             if get_task_count() < 1 {
                                 let refresh_rss: Vec<RssSubSource> = get_fresh_channel();
                                 if !refresh_rss.is_empty() {
-                                    let rss_id = refresh_rss[0].clone();
-                                    rss_app.send_task(add::new(rss_id.id, 2)).await?;
+                                    let rss_record = refresh_rss[0].clone();
+                                    rss_app.send_task(add::new(rss_record.id, 2)).await?;
+                                    let _result = update_pulled_channel(rss_record);
                                 }
                             }
                         }
