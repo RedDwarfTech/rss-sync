@@ -1,14 +1,16 @@
 use diesel::Connection;
 use feed_rs::{model::Feed, parser};
+use futures::stream::StreamExt;
 use log::error;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
     Client, Response,
 };
 use rss::Channel;
-use futures::stream::StreamExt;
+use rust_wheel::config::cache::redis_util::push_to_stream;
 
 use crate::{
+    cache::redis_rss::async_send_article_to_stream,
     common::database::get_connection,
     model::{
         article::{add_article::AddArticle, add_article_content::AddArticleContent},
@@ -16,7 +18,7 @@ use crate::{
     },
     service::article::{
         article_content_service::insert_article_content, article_service::insert_article,
-    }, cache::redis_rss::{send_article_to_stream, async_send_article_to_stream},
+    },
 };
 
 pub async fn fetch_channel_article(source: RssSubSource) -> bool {
@@ -67,8 +69,8 @@ fn handle_rss_pull(body: String) -> bool {
         Ok(channel_result) => {
             return save_rss_channel_article(channel_result);
         }
-        Err(_) => {
-            error!("error, pull rss channel error");
+        Err(e) => {
+            error!("error, pull rss channel error,{}", e);
             return false;
         }
     }
@@ -82,7 +84,7 @@ async fn _async_save_rss_channel_article(channel: Channel) -> bool {
     let stream = futures::stream::iter(channel.items).map(|item| {
         let article: AddArticle = AddArticle::from_rss_entry(&item);
         let mut article_content = AddArticleContent::from_rss_entry(&item);
-        
+
         async move {
             let result = save_article_impl(&article, &mut article_content);
             match result {
@@ -96,10 +98,12 @@ async fn _async_save_rss_channel_article(channel: Channel) -> bool {
         }
     });
 
-    stream.for_each(|task| async {
-        task.await;
-    }).await;
-    
+    stream
+        .for_each(|task| async {
+            task.await;
+        })
+        .await;
+
     return true;
 }
 
@@ -114,7 +118,7 @@ fn save_rss_channel_article(channel: Channel) -> bool {
         let result = save_article_impl(&article, &mut article_content);
         match result {
             Ok(_) => {
-                send_article_to_stream("pydolphin:stream:article");
+                push_to_stream("pydolphin:stream:article");
             }
             Err(e) => {
                 error!("save article content error,{}", e);
