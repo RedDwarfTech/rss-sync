@@ -33,7 +33,7 @@ pub async fn init_impl(opt: &CeleryOpt) -> Result<(), Box<dyn std::error::Error 
             "buggy_task" => "buggy-queue",
             "*" => "celery",
         ],
-        prefetch_count = 2,
+        prefetch_count = 1,
         heartbeat = Some(30)
     )
     .await?;
