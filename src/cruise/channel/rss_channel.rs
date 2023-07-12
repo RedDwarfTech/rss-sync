@@ -16,7 +16,7 @@ use crate::{
     },
     service::article::{
         article_content_service::insert_article_content, article_service::insert_article,
-    }, cache::redis_rss::send_article_to_stream,
+    }, cache::redis_rss::{send_article_to_stream, async_send_article_to_stream},
 };
 
 pub async fn fetch_channel_article(source: RssSubSource) -> bool {
@@ -41,7 +41,7 @@ async fn handle_channel_resp(response: Response, source: RssSubSource) -> bool {
             let rss_type_str = &source.rss_type;
             match rss_type_str.as_str() {
                 "RSS" => {
-                    return handle_rss_pull(body).await;
+                    return handle_rss_pull(body);
                 }
                 "ATOM" => {
                     let feed: Feed = parser::parse(body.as_bytes()).unwrap();
@@ -61,11 +61,11 @@ async fn handle_channel_resp(response: Response, source: RssSubSource) -> bool {
     }
 }
 
-async fn handle_rss_pull(body: String) -> bool {
+fn handle_rss_pull(body: String) -> bool {
     let channel = Channel::read_from(body.as_bytes());
     match channel {
         Ok(channel_result) => {
-            return save_rss_channel_article(channel_result).await;
+            return save_rss_channel_article(channel_result);
         }
         Err(_) => {
             error!("error, pull rss channel error");
@@ -75,7 +75,7 @@ async fn handle_rss_pull(body: String) -> bool {
 }
 
 // try to get the async result in future
-async fn save_rss_channel_article(channel: Channel) -> bool {
+async fn _async_save_rss_channel_article(channel: Channel) -> bool {
     if channel.items.is_empty() {
         return true;
     }
@@ -87,7 +87,7 @@ async fn save_rss_channel_article(channel: Channel) -> bool {
             let result = save_article_impl(&article, &mut article_content);
             match result {
                 Ok(_) => {
-                    send_article_to_stream("pydolphin:stream:article").await;
+                    async_send_article_to_stream("pydolphin:stream:article").await;
                 }
                 Err(e) => {
                     error!("save article content error, {}", e);
@@ -101,6 +101,28 @@ async fn save_rss_channel_article(channel: Channel) -> bool {
     }).await;
     
     return true;
+}
+
+fn save_rss_channel_article(channel: Channel) -> bool {
+    if channel.items.is_empty() {
+        return true;
+    }
+    let mut success = true;
+    channel.items.iter().for_each(|item| {
+        let article: AddArticle = AddArticle::from_rss_entry(item);
+        let mut article_content = AddArticleContent::from_rss_entry(item);
+        let result = save_article_impl(&article, &mut article_content);
+        match result {
+            Ok(_) => {
+                send_article_to_stream("pydolphin:stream:article");
+            }
+            Err(e) => {
+                error!("save article content error,{}", e);
+                success = false
+            }
+        }
+    });
+    return success;
 }
 
 fn save_atom_channel_article(feed: Feed) -> bool {
