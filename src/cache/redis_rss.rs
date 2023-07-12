@@ -1,6 +1,6 @@
 use log::error;
 use redis::{ Client, Commands, AsyncCommands};
-use rust_wheel::config::{initial::get_config};
+use rust_wheel::config::{initial::get_config, cache::redis_util::get_list_size};
 
 pub async fn async_send_article_to_stream(stream_key: &str){
     let config_redis_string = get_config("REDIS_ADDR");
@@ -64,4 +64,9 @@ pub fn send_article_to_stream(stream_key: &str){
             error!("Couldn't get redis client,{}",e);
         },
     }
+}
+
+
+pub fn get_task_count() -> usize {
+    return get_list_size("celery").unwrap();
 }

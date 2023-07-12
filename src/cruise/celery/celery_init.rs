@@ -1,6 +1,11 @@
-use celery::{task::TaskResult, prelude::TaskError};
-use log::{info, error};
-use crate::{cruise::{models::appenum::celery_opt::CeleryOpt, channel::rss_channel::fetch_channel_article}, service::channel::channel_service::{get_channel_by_id, get_fresh_channel}, model::diesel::dolphin::custom_dolphin_models::RssSubSource};
+use crate::{
+    cache::redis_rss::get_task_count,
+    cruise::{channel::rss_channel::fetch_channel_article, models::appenum::celery_opt::CeleryOpt},
+    model::diesel::dolphin::custom_dolphin_models::RssSubSource,
+    service::channel::channel_service::{get_channel_by_id, get_fresh_channel},
+};
+use celery::{prelude::TaskError, task::TaskResult};
+use log::{error, info};
 
 #[celery::task]
 async fn add(x: i64, y: i32) -> TaskResult<i64> {
@@ -8,8 +13,10 @@ async fn add(x: i64, y: i32) -> TaskResult<i64> {
     let success = handle_add(x).await;
     if success {
         Ok(x)
-    }else{
-        Err(TaskError::from(TaskError::UnexpectedError("article pull error message".to_string())))
+    } else {
+        Err(TaskError::from(TaskError::UnexpectedError(
+            "article pull error message".to_string(),
+        )))
     }
 }
 
@@ -45,17 +52,18 @@ pub async fn init_impl(opt: &CeleryOpt) -> Result<(), Box<dyn std::error::Error 
         }
         CeleryOpt::Produce { tasks } => {
             if tasks.is_empty() {
-                
             } else {
                 for task in tasks {
                     match task.as_str() {
                         "add" => {
-                          let refresh_rss:Vec<RssSubSource> =  get_fresh_channel();
-                          if !refresh_rss.is_empty() {
-                            let rss_id = refresh_rss[0].clone();
-                            rss_app.send_task(add::new(rss_id.id, 2)).await?;
-                          }
-                        },
+                            if get_task_count() < 1 {
+                                let refresh_rss: Vec<RssSubSource> = get_fresh_channel();
+                                if !refresh_rss.is_empty() {
+                                    let rss_id = refresh_rss[0].clone();
+                                    rss_app.send_task(add::new(rss_id.id, 2)).await?;
+                                }
+                            }
+                        }
                         _ => error!("unknown task"),
                     };
                 }
