@@ -1,6 +1,7 @@
 
 use feed_rs::model::Entry;
 use rss::Item;
+use rust_wheel::common::util::time_util::get_current_millisecond;
 use serde::Serialize;
 use serde::Deserialize;
 use crate::model::diesel::dolphin::dolphin_schema::*;
@@ -28,15 +29,18 @@ pub struct AddArticle {
 
 impl AddArticle {
     pub(crate) fn from_atom_entry(request: &Entry) ->Self {
+
+        let names: Vec<String> = request.authors.iter().map(|person| person.name.clone()).collect();
+        let names_concatenated = names.join(",");
         Self {
             user_id: 1,
             title: request.title.clone().unwrap().content,
-            author: "".to_owned(),
-            guid:  "".to_owned(),
-            created_time: 1,
-            updated_time:1,
-            link: Some("".to_owned()),
-            pub_time: Some(Utc::now()),
+            author: names_concatenated,
+            guid:  request.id.clone(),
+            created_time: get_current_millisecond(),
+            updated_time: get_current_millisecond(),
+            link: request.links.first().map(|link| link.href.clone()),
+            pub_time: request.published,
             sub_source_id: 1,
             cover_image: Some("".to_owned()),
             channel_reputation: 0,

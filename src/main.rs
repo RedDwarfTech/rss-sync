@@ -13,6 +13,7 @@ pub mod common;
 pub mod cruise;
 pub mod model;
 pub mod service;
+pub mod cache;
 
 #[tokio::main]
 async fn main() {
