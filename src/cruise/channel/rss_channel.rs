@@ -1,16 +1,14 @@
 use diesel::Connection;
 use feed_rs::{model::Feed, parser};
-use futures::stream::StreamExt;
 use log::error;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
     Client, Response,
 };
 use rss::Channel;
-use rust_wheel::config::cache::redis_util::push_to_stream;
+use rust_wheel::config::cache::redis_util::push_data_to_stream;
 
 use crate::{
-    cache::redis_rss::async_send_article_to_stream,
     common::database::get_connection,
     model::{
         article::{add_article::AddArticle, add_article_content::AddArticleContent},
@@ -76,37 +74,6 @@ fn handle_rss_pull(body: String) -> bool {
     }
 }
 
-// try to get the async result in future
-async fn _async_save_rss_channel_article(channel: Channel) -> bool {
-    if channel.items.is_empty() {
-        return true;
-    }
-    let stream = futures::stream::iter(channel.items).map(|item| {
-        let article: AddArticle = AddArticle::from_rss_entry(&item);
-        let mut article_content = AddArticleContent::from_rss_entry(&item);
-
-        async move {
-            let result = save_article_impl(&article, &mut article_content);
-            match result {
-                Ok(_) => {
-                    async_send_article_to_stream("pydolphin:stream:article").await;
-                }
-                Err(e) => {
-                    error!("save article content error, {}", e);
-                }
-            }
-        }
-    });
-
-    stream
-        .for_each(|task| async {
-            task.await;
-        })
-        .await;
-
-    return true;
-}
-
 fn save_rss_channel_article(channel: Channel) -> bool {
     if channel.items.is_empty() {
         return true;
@@ -116,15 +83,16 @@ fn save_rss_channel_article(channel: Channel) -> bool {
         let article: AddArticle = AddArticle::from_rss_entry(item);
         let mut article_content = AddArticleContent::from_rss_entry(item);
         let result = save_article_impl(&article, &mut article_content);
-        match result {
-            Ok(_) => {
-                push_to_stream("pydolphin:stream:article");
-            }
-            Err(e) => {
-                error!("save article content error,{}", e);
-                success = false
-            }
+        if let Ok(content) = result {
+            let a_id = content.article_id.to_string();
+            let c_id = article.sub_source_id.to_string();
+            let params = &[("id", a_id.as_str()), ("sub_source_id", c_id.as_str())];
+            push_data_to_stream("pydolphin:stream:article", params);
+        }else{
+            error!("save article content error");
+            success = false
         }
+        
     });
     return success;
 }
