@@ -2,7 +2,9 @@ use crate::{
     cache::redis_rss::get_task_count,
     cruise::{channel::rss_channel::fetch_channel_article, models::appenum::celery_opt::CeleryOpt},
     model::diesel::dolphin::custom_dolphin_models::RssSubSource,
-    service::channel::channel_service::{get_channel_by_id, get_fresh_channel, update_pulled_channel},
+    service::channel::channel_service::{
+        get_channel_by_id, get_fresh_channel, update_pulled_channel,
+    },
 };
 use celery::{prelude::TaskError, task::TaskResult};
 use log::{error, info};
@@ -23,6 +25,7 @@ async fn add(x: i64, y: i32) -> TaskResult<i64> {
 async fn handle_add(channel_id: i64) -> bool {
     let channel = get_channel_by_id(channel_id);
     if channel.is_empty() {
+        error!("get null channel,id:{}", channel_id);
         return false;
     }
     return fetch_channel_article(channel[0].clone()).await;
