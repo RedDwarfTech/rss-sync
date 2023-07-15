@@ -163,7 +163,6 @@ fn pre_check(
                     let content = serde_json::to_string(&article_content).unwrap();
                     let err_info = format!("save article failed.{}", content);
                     set_value(&article_cached_key, &content, 259200).expect(&err_info);
-                    info!("save article success")
                 }
                 Err(e) => {
                     error!("save article failed,{}", e);
