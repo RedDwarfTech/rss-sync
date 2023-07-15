@@ -56,13 +56,14 @@ async fn handle_channel_resp(response: Response, source: RssSubSource) -> bool {
                     return false;
                 }
                 _ => {
-                    error!("unknown rss type");
+                    let channel_json = serde_json::to_string(&source);
+                    error!("unknown rss type, channel: {}", channel_json.unwrap_or_default());
                     return false;
                 }
             }
         }
         Err(err) => {
-            error!("error,{}", err);
+            error!("get http response error,{}", err);
             return false;
         }
     }
@@ -103,7 +104,7 @@ fn save_rss_channel_article(channel: Channel) -> bool {
             let params = &[("id", a_id.as_str()), ("sub_source_id", c_id.as_str())];
             push_data_to_stream("pydolphin:stream:article", params);
         } else {
-            error!("save article content error");
+            error!("save rss article content error");
             success = false
         }
     });
@@ -122,7 +123,7 @@ fn save_atom_channel_article(feed: Feed) -> bool {
         match result {
             Ok(_) => {}
             Err(e) => {
-                error!("save single article content error,{}", e);
+                error!("save atom single article content error,{}", e);
                 success = false;
             }
         }
