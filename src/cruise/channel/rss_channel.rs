@@ -22,7 +22,8 @@ use rss::Channel;
 use rust_wheel::config::cache::redis_util::push_data_to_stream;
 
 pub async fn fetch_channel_article(source: RssSubSource) -> bool {
-    let client = Client::new();
+    // https://stackoverflow.com/questions/65977261/how-can-i-accept-invalid-or-self-signed-ssl-certificates-in-rust-futures-reqwest
+    let client = Client::builder().danger_accept_invalid_certs(true).build().unwrap_or_default();
     let url: &str = &source.sub_url.clone();
     let response = client.get(url).headers(construct_headers()).send().await;
     match response {
