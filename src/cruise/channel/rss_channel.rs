@@ -19,7 +19,7 @@ use reqwest::{
     Client, Response,
 };
 use rss::Channel;
-use rust_wheel::config::cache::redis_util::push_data_to_stream;
+use rust_wheel::config::cache::redis_util::{push_data_to_stream, sync_get_str};
 
 pub async fn fetch_channel_article(source: RssSubSource) -> bool {
     // https://stackoverflow.com/questions/65977261/how-can-i-accept-invalid-or-self-signed-ssl-certificates-in-rust-futures-reqwest
@@ -137,14 +137,25 @@ fn save_atom_channel_article(feed: Feed, rss_source: &RssSubSource) -> bool {
     feed.entries.iter().for_each(|item| {
         let _article: AddArticle = AddArticle::from_atom_entry(item, rss_source);
         let mut article_content = AddArticleContent::from_atom_entry(item);
-        let result = save_article_impl(&_article, &mut article_content);
-        match result {
-            std::result::Result::Ok(_) => {
-                info!("save article success")
-            }
-            Err(e) => {
-                error!("save article failed,{}", e);
-                success = false;
+        let article_title = &item.title.clone().unwrap().content;
+        let article_cached_key = format!(
+            "{}{}{}",
+            "pydolphin:article:pull:cache:", rss_source.id, article_title
+        );
+        let cached_article = sync_get_str(&article_cached_key).unwrap();
+        match cached_article {
+            Some(_) => {}
+            None => {
+                let result = save_article_impl(&_article, &mut article_content);
+                match result {
+                    std::result::Result::Ok(_) => {
+                        info!("save article success")
+                    }
+                    Err(e) => {
+                        error!("save article failed,{}", e);
+                        success = false;
+                    }
+                }
             }
         }
     });
