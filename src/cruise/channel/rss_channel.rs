@@ -68,7 +68,7 @@ fn handle_rss_pull(body: String) -> bool {
             return save_rss_channel_article(channel_result);
         }
         Err(e) => {
-            error!("error, pull rss channel error,{}", e);
+            error!("error, pull rss channel error,{},the body is: {}", e, body);
             return false;
         }
     }
