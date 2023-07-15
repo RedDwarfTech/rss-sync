@@ -30,7 +30,6 @@ pub struct AddArticle {
 
 impl AddArticle {
     pub(crate) fn from_atom_entry(request: &Entry, rss_source: &RssSubSource) ->Self {
-
         let names: Vec<String> = request.authors.iter().map(|person| person.name.clone()).collect();
         let names_concatenated = names.join(",");
         Self {
@@ -45,25 +44,26 @@ impl AddArticle {
             sub_source_id: rss_source.id,
             cover_image: Some("".to_owned()),
             channel_reputation: 0,
-            editor_pick: Some(0),
+            editor_pick: rss_source.editor_pick,
             permanent_store: 0,
         }
     }
 
     pub(crate) fn from_rss_entry(request: &Item,rss_source: &RssSubSource) ->Self {
+        let guid = request.guid.clone().unwrap_or_default();
         Self {
             user_id: 1,
             title: request.title.clone().unwrap(),
-            author: "".to_owned(),
-            guid:  "".to_owned(),
+            author: request.author.clone().unwrap_or_default(),
+            guid: guid.value,
             created_time: get_current_millisecond(),
             updated_time:get_current_millisecond(),
-            link: Some("".to_owned()),
+            link: request.link.clone(),
             pub_time: Some(Utc::now()),
             sub_source_id: rss_source.id,
             cover_image: Some("".to_owned()),
             channel_reputation: 0,
-            editor_pick: Some(0),
+            editor_pick: rss_source.editor_pick,
             permanent_store: 0,
         }
     }
