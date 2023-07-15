@@ -116,14 +116,17 @@ fn save_rss_channel_article(channel: Channel, rss_source: &RssSubSource) -> bool
         let article: AddArticle = AddArticle::from_rss_entry(item, &rss_source);
         let mut article_content = AddArticleContent::from_rss_entry(item);
         let result = save_article_impl(&article, &mut article_content);
-        if let std::result::Result::Ok(content) = result {
-            let a_id = content.article_id.to_string();
-            let c_id = article.sub_source_id.to_string();
-            let params = &[("id", a_id.as_str()), ("sub_source_id", c_id.as_str())];
-            push_data_to_stream("pydolphin:stream:article", params);
-        } else {
-            error!("save rss article content error");
-            success = false
+        match result {
+            Ok(content) => {
+                let a_id = content.article_id.to_string();
+                let c_id = article.sub_source_id.to_string();
+                let params = &[("id", a_id.as_str()), ("sub_source_id", c_id.as_str())];
+                push_data_to_stream("pydolphin:stream:article", params);
+            },
+            Err(e) => {
+                error!("save rss article content error,{}",e);
+                success = false
+            },
         }
     });
     return success;
