@@ -5,7 +5,7 @@ use crate::diesel::RunQueryDsl;
 use crate::{
     common::database::get_connection, model::diesel::dolphin::custom_dolphin_models::RssSubSource,
 };
-use chrono::{ NaiveDateTime, Utc};
+use chrono::{NaiveDateTime, Utc};
 use cron::Schedule;
 use diesel::{ExpressionMethods, QueryDsl};
 use rust_wheel::common::util::time_util::get_current_millisecond;
@@ -31,6 +31,19 @@ pub fn get_fresh_channel() -> Vec<RssSubSource> {
         .load::<RssSubSource>(&mut get_connection())
         .expect("error get ready sub channel list");
     return cvs;
+}
+
+pub fn update_substatus(
+    channel: RssSubSource,
+    new_sub_status: i32,
+) -> Result<RssSubSource, diesel::result::Error> {
+    use crate::model::diesel::dolphin::dolphin_schema::rss_sub_source::dsl::*;
+    let predicate =
+        crate::model::diesel::dolphin::dolphin_schema::rss_sub_source::id.eq(channel.id);
+    let update_result = diesel::update(rss_sub_source.filter(predicate))
+        .set(sub_status.eq(new_sub_status))
+        .get_result::<RssSubSource>(&mut get_connection());
+    return update_result;
 }
 
 pub fn update_pulled_channel(channel: RssSubSource) -> Result<RssSubSource, diesel::result::Error> {

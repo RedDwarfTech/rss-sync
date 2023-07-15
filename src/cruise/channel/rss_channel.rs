@@ -1,22 +1,21 @@
 use diesel::Connection;
 use feed_rs::{model::Feed, parser};
-use log::error;
+use log::{error, warn};
 use reqwest::{
     header::{HeaderMap, HeaderValue},
     Client, Response,
 };
 use rss::Channel;
 use rust_wheel::config::cache::redis_util::push_data_to_stream;
-
 use crate::{
     common::database::get_connection,
     model::{
         article::{add_article::AddArticle, add_article_content::AddArticleContent},
         diesel::dolphin::custom_dolphin_models::{ArticleContent, RssSubSource},
     },
-    service::article::{
+    service::{article::{
         article_content_service::insert_article_content, article_service::insert_article,
-    },
+    }, channel::channel_service::update_substatus},
 };
 
 pub async fn fetch_channel_article(source: RssSubSource) -> bool {
@@ -29,6 +28,10 @@ pub async fn fetch_channel_article(source: RssSubSource) -> bool {
         }
         Err(e) => {
             error!("pull channel facing error:{}", e);
+            if e.to_string().contains("dns error") {
+                warn!("handle dns issue,{}",e.status().unwrap_or_default());
+                let _result = update_substatus(source,-1);
+            }
             return false;
         }
     }
