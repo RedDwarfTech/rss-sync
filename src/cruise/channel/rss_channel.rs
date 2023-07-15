@@ -34,7 +34,12 @@ pub async fn fetch_channel_article(source: RssSubSource) -> bool {
             return handle_channel_resp(resp, source).await;
         }
         Err(e) => {
-            error!("pull channel facing error:{}", e);
+            error!(
+                "pull channel url {} facing error:{},code:{:?}",
+                url,
+                e,
+                e.status()
+            );
             if e.to_string().contains("dns error") {
                 warn!("handle dns issue,{}", e.status().unwrap_or_default());
                 let _result = update_substatus(source, -1);
