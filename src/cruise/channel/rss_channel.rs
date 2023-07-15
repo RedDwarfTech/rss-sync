@@ -44,8 +44,9 @@ pub async fn fetch_channel_article(source: RssSubSource) -> bool {
                 .contains("connection closed before message completed")
             {
                 warn!(
-                    "handle could not connect issue,{}",
-                    e.status().unwrap_or_default()
+                    "handle could not connect issue,code:{:?},error:{}",
+                    e.status(),
+                    e
                 );
                 let _result = update_substatus(source, -1);
                 return true;
