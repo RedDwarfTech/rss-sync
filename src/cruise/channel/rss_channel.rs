@@ -149,8 +149,8 @@ fn pre_check(
         None => {
             let result = save_article_impl(&_article, &mut article_content);
             match result {
-                std::result::Result::Ok(ac) => {
-                    let content = serde_json::to_string(&ac).unwrap();
+                std::result::Result::Ok(_ac) => {
+                    let content = serde_json::to_string(&article_content).unwrap();
                     let err_info = format!("save article failed.{}", content);
                     set_value(&article_cached_key, &content, 259200).expect(&err_info);
                     info!("save article success")
@@ -179,8 +179,7 @@ fn save_article_impl(
                     return insert_article_content(add_article_content);
                 }
                 None => {
-                    info!("insert article is null");
-                    return Err(diesel::result::Error::NotFound);
+                    return Ok(ArticleContent::default());
                 }
             }
         });

@@ -13,6 +13,3 @@ pub fn insert_article(input_article: &AddArticle) -> Result<Option<Article>, die
         .optional();
     return result;
 }
-
-
-
