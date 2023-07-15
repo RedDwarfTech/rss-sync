@@ -4,6 +4,7 @@ use rss::Item;
 use rust_wheel::common::util::time_util::get_current_millisecond;
 use serde::Serialize;
 use serde::Deserialize;
+use crate::model::diesel::dolphin::custom_dolphin_models::RssSubSource;
 use crate::model::diesel::dolphin::dolphin_schema::*;
 
 use chrono::DateTime;
@@ -28,7 +29,7 @@ pub struct AddArticle {
 }
 
 impl AddArticle {
-    pub(crate) fn from_atom_entry(request: &Entry) ->Self {
+    pub(crate) fn from_atom_entry(request: &Entry, rss_source: &RssSubSource) ->Self {
 
         let names: Vec<String> = request.authors.iter().map(|person| person.name.clone()).collect();
         let names_concatenated = names.join(",");
@@ -41,7 +42,7 @@ impl AddArticle {
             updated_time: get_current_millisecond(),
             link: request.links.first().map(|link| link.href.clone()),
             pub_time: request.published,
-            sub_source_id: 1,
+            sub_source_id: rss_source.id,
             cover_image: Some("".to_owned()),
             channel_reputation: 0,
             editor_pick: Some(0),
@@ -49,17 +50,17 @@ impl AddArticle {
         }
     }
 
-    pub(crate) fn from_rss_entry(request: &Item) ->Self {
+    pub(crate) fn from_rss_entry(request: &Item,rss_source: &RssSubSource) ->Self {
         Self {
             user_id: 1,
             title: request.title.clone().unwrap(),
             author: "".to_owned(),
             guid:  "".to_owned(),
-            created_time: 1,
-            updated_time:1,
+            created_time: get_current_millisecond(),
+            updated_time:get_current_millisecond(),
             link: Some("".to_owned()),
             pub_time: Some(Utc::now()),
-            sub_source_id: 1,
+            sub_source_id: rss_source.id,
             cover_image: Some("".to_owned()),
             channel_reputation: 0,
             editor_pick: Some(0),

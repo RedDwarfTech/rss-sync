@@ -23,7 +23,10 @@ use rust_wheel::config::cache::redis_util::push_data_to_stream;
 
 pub async fn fetch_channel_article(source: RssSubSource) -> bool {
     // https://stackoverflow.com/questions/65977261/how-can-i-accept-invalid-or-self-signed-ssl-certificates-in-rust-futures-reqwest
-    let client = Client::builder().danger_accept_invalid_certs(true).build().unwrap_or_default();
+    let client = Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .unwrap_or_default();
     let url: &str = &source.sub_url.clone();
     let response = client.get(url).headers(construct_headers()).send().await;
     match response {
@@ -53,12 +56,15 @@ async fn handle_channel_resp(response: Response, source: RssSubSource) -> bool {
                 }
                 "ATOM" => {
                     let feed: Feed = parser::parse(body.as_bytes()).unwrap();
-                    save_atom_channel_article(feed);
+                    save_atom_channel_article(feed, &source);
                     return false;
                 }
                 _ => {
                     let channel_json = serde_json::to_string(&source);
-                    error!("unknown rss type, channel: {}", channel_json.unwrap_or_default());
+                    error!(
+                        "unknown rss type, channel: {}",
+                        channel_json.unwrap_or_default()
+                    );
                     let _result = update_substatus(source, -6);
                     return true;
                 }
@@ -75,7 +81,7 @@ fn handle_rss_pull(body: String, pull_channel: RssSubSource) -> bool {
     let channel = Channel::read_from(body.as_bytes());
     match channel {
         Ok(channel_result) => {
-            return save_rss_channel_article(channel_result);
+            return save_rss_channel_article(channel_result, &pull_channel);
         }
         Err(e) => {
             let channel_json = serde_json::to_string(&pull_channel);
@@ -91,13 +97,13 @@ fn handle_rss_pull(body: String, pull_channel: RssSubSource) -> bool {
     }
 }
 
-fn save_rss_channel_article(channel: Channel) -> bool {
+fn save_rss_channel_article(channel: Channel,rss_source: &RssSubSource) -> bool {
     if channel.items.is_empty() {
         return true;
     }
     let mut success = true;
     channel.items.iter().for_each(|item| {
-        let article: AddArticle = AddArticle::from_rss_entry(item);
+        let article: AddArticle = AddArticle::from_rss_entry(item, &rss_source);
         let mut article_content = AddArticleContent::from_rss_entry(item);
         let result = save_article_impl(&article, &mut article_content);
         if let Ok(content) = result {
@@ -113,13 +119,13 @@ fn save_rss_channel_article(channel: Channel) -> bool {
     return success;
 }
 
-fn save_atom_channel_article(feed: Feed) -> bool {
+fn save_atom_channel_article(feed: Feed, rss_source: &RssSubSource) -> bool {
     if feed.entries.is_empty() {
         return true;
     }
     let mut success = true;
     feed.entries.iter().for_each(|item| {
-        let _article: AddArticle = AddArticle::from_atom_entry(item);
+        let _article: AddArticle = AddArticle::from_atom_entry(item, rss_source);
         let mut article_content = AddArticleContent::from_atom_entry(item);
         let result = save_article_impl(&_article, &mut article_content);
         match result {
