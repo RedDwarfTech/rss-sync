@@ -34,6 +34,7 @@ pub async fn fetch_channel_article(source: RssSubSource) -> bool {
             if e.to_string().contains("dns error") {
                 warn!("handle dns issue,{}", e.status().unwrap_or_default());
                 let _result = update_substatus(source, -1);
+                return true;
             }
             return false;
         }
@@ -82,7 +83,7 @@ fn handle_rss_pull(body: String, pull_channel: RssSubSource) -> bool {
                 body
             );
             let _result = update_substatus(pull_channel, -5);
-            return false;
+            return true;
         }
     }
 }
