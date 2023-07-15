@@ -1,3 +1,16 @@
+use crate::{
+    common::database::get_connection,
+    model::{
+        article::{add_article::AddArticle, add_article_content::AddArticleContent},
+        diesel::dolphin::custom_dolphin_models::{ArticleContent, RssSubSource},
+    },
+    service::{
+        article::{
+            article_content_service::insert_article_content, article_service::insert_article,
+        },
+        channel::channel_service::update_substatus,
+    },
+};
 use diesel::Connection;
 use feed_rs::{model::Feed, parser};
 use log::{error, warn};
@@ -7,16 +20,6 @@ use reqwest::{
 };
 use rss::Channel;
 use rust_wheel::config::cache::redis_util::push_data_to_stream;
-use crate::{
-    common::database::get_connection,
-    model::{
-        article::{add_article::AddArticle, add_article_content::AddArticleContent},
-        diesel::dolphin::custom_dolphin_models::{ArticleContent, RssSubSource},
-    },
-    service::{article::{
-        article_content_service::insert_article_content, article_service::insert_article,
-    }, channel::channel_service::update_substatus},
-};
 
 pub async fn fetch_channel_article(source: RssSubSource) -> bool {
     let client = Client::new();
@@ -29,8 +32,8 @@ pub async fn fetch_channel_article(source: RssSubSource) -> bool {
         Err(e) => {
             error!("pull channel facing error:{}", e);
             if e.to_string().contains("dns error") {
-                warn!("handle dns issue,{}",e.status().unwrap_or_default());
-                let _result = update_substatus(source,-1);
+                warn!("handle dns issue,{}", e.status().unwrap_or_default());
+                let _result = update_substatus(source, -1);
             }
             return false;
         }
@@ -44,7 +47,7 @@ async fn handle_channel_resp(response: Response, source: RssSubSource) -> bool {
             let rss_type_str = &source.rss_type;
             match rss_type_str.as_str() {
                 "RSS" => {
-                    return handle_rss_pull(body);
+                    return handle_rss_pull(body, source);
                 }
                 "ATOM" => {
                     let feed: Feed = parser::parse(body.as_bytes()).unwrap();
@@ -64,14 +67,20 @@ async fn handle_channel_resp(response: Response, source: RssSubSource) -> bool {
     }
 }
 
-fn handle_rss_pull(body: String) -> bool {
+fn handle_rss_pull(body: String, pull_channel: RssSubSource) -> bool {
     let channel = Channel::read_from(body.as_bytes());
     match channel {
         Ok(channel_result) => {
             return save_rss_channel_article(channel_result);
         }
         Err(e) => {
-            error!("error, pull rss channel error,{},the body is: {}", e, body);
+            let channel_json = serde_json::to_string(&pull_channel);
+            error!(
+                "error, parse rss channel{} error {},the body is: {}",
+                channel_json.unwrap_or_default(),
+                e,
+                body
+            );
             return false;
         }
     }
@@ -91,11 +100,10 @@ fn save_rss_channel_article(channel: Channel) -> bool {
             let c_id = article.sub_source_id.to_string();
             let params = &[("id", a_id.as_str()), ("sub_source_id", c_id.as_str())];
             push_data_to_stream("pydolphin:stream:article", params);
-        }else{
+        } else {
             error!("save article content error");
             success = false
         }
-        
     });
     return success;
 }
