@@ -59,7 +59,8 @@ async fn handle_channel_resp(response: Response, source: RssSubSource) -> bool {
                 _ => {
                     let channel_json = serde_json::to_string(&source);
                     error!("unknown rss type, channel: {}", channel_json.unwrap_or_default());
-                    return false;
+                    let _result = update_substatus(source, -6);
+                    return true;
                 }
             }
         }
