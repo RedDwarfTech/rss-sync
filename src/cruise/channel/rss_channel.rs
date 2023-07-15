@@ -81,6 +81,7 @@ fn handle_rss_pull(body: String, pull_channel: RssSubSource) -> bool {
                 e,
                 body
             );
+            let _result = update_substatus(pull_channel, -5);
             return false;
         }
     }
