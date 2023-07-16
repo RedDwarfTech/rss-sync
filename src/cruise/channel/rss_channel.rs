@@ -13,7 +13,7 @@ use crate::{
 };
 use diesel::Connection;
 use feed_rs::{model::Feed, parser};
-use log::{error, info, warn};
+use log::{error, warn};
 use reqwest::{
     header::{HeaderMap, HeaderValue},
     Client, Response,
@@ -144,20 +144,20 @@ fn save_atom_channel_article(feed: Feed, rss_source: &RssSubSource) -> bool {
 }
 
 fn pre_check(
-    _article: &AddArticle,
+    article: &AddArticle,
     rss_source: &RssSubSource,
     mut article_content: AddArticleContent,
 ) -> bool {
     let article_cached_key = format!(
         "{}{}{}",
-        "pydolphin:article:pull:cache:", rss_source.id, _article.title
+        "pydolphin:article:pull:cache:", rss_source.id, article.title
     );
     let mut success = true;
     let cached_article = sync_get_str(&article_cached_key).unwrap();
     match cached_article {
         Some(_) => {}
         None => {
-            let result = save_article_impl(&_article, &mut article_content);
+            let result = save_article_impl(&article, &mut article_content);
             match result {
                 std::result::Result::Ok(_ac) => {
                     let content = serde_json::to_string(&article_content).unwrap();
@@ -165,7 +165,8 @@ fn pre_check(
                     set_value(&article_cached_key, &content, 259200).expect(&err_info);
                 }
                 Err(e) => {
-                    error!("save article failed,{}", e);
+                    let article_json = serde_json::to_string(article).unwrap();
+                    error!("save article {} failed,{}", article_json, e);
                     success = false;
                 }
             }
