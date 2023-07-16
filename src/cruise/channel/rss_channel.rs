@@ -56,7 +56,11 @@ pub async fn fetch_channel_article(source: RssSubSource) -> bool {
                 let _result = update_substatus(source, -1);
                 return true;
             }
-            error!("http get channel info facing error,{}", e);
+            error!(
+                "http get channel info facing error,{},code:{:?}",
+                e,
+                e.status()
+            );
             return false;
         }
     }
@@ -101,10 +105,11 @@ fn handle_atom_pull(body: String, pull_channel: RssSubSource) -> bool {
         Err(e) => {
             let channel_json = serde_json::to_string(&pull_channel).unwrap();
             error!(
-                "parse channel {} atom body{} failed: {}",
+                "parse atom channel {}  body {} failed: {}",
                 channel_json, body, e
             );
-            return false;
+            let _result = update_substatus(pull_channel, -5);
+            return true;
         }
     }
 }
