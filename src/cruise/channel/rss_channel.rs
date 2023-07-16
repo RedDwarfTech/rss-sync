@@ -93,8 +93,20 @@ async fn handle_channel_resp(response: Response, source: RssSubSource) -> bool {
 }
 
 fn handle_atom_pull(body: String, pull_channel: RssSubSource) -> bool {
-    let feed: Feed = parser::parse(body.as_bytes()).unwrap();
-    return save_atom_channel_article(feed, &pull_channel);
+    let feed = parser::parse(body.as_bytes());
+    match feed {
+        Ok(feed_content) => {
+            return save_atom_channel_article(feed_content, &pull_channel);
+        }
+        Err(e) => {
+            let channel_json = serde_json::to_string(&pull_channel).unwrap();
+            error!(
+                "parse channel {} atom body{} failed: {}",
+                channel_json, body, e
+            );
+            return false;
+        }
+    }
 }
 
 fn handle_rss_pull(body: String, pull_channel: RssSubSource) -> bool {
