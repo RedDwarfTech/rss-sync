@@ -13,7 +13,7 @@ use crate::{
 };
 use diesel::Connection;
 use feed_rs::{model::Feed, parser};
-use log::{error, warn};
+use log::error;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
     Client, Response,
@@ -40,28 +40,8 @@ pub async fn fetch_channel_article(source: RssSubSource) -> bool {
                 e,
                 e.status()
             );
-            if e.to_string().contains("dns error") {
-                warn!("handle dns issue,{}", e.status().unwrap_or_default());
-                let _result = update_substatus(source, -1);
-                return true;
-            }
-            if e.to_string()
-                .contains("connection closed before message completed")
-            {
-                warn!(
-                    "handle could not connect issue,code:{:?},error:{}",
-                    e.status(),
-                    e
-                );
-                let _result = update_substatus(source, -1);
-                return true;
-            }
-            error!(
-                "http get channel info facing error,{},code:{:?}",
-                e,
-                e.status()
-            );
-            return false;
+            let _result = update_substatus(source, -5);
+            return true;
         }
     }
 }
