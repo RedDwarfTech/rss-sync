@@ -123,7 +123,9 @@ fn save_rss_channel_article(channel: Channel, rss_source: &RssSubSource) -> bool
     channel.items.iter().for_each(|item| {
         let article: AddArticle = AddArticle::from_rss_entry(item, &rss_source);
         let article_content = AddArticleContent::from_rss_entry(item);
-        success = pre_check(&article, rss_source, article_content);
+        if !article_content.content.is_empty() {
+            success = pre_check(&article, rss_source, article_content);
+        }
     });
     return success;
 }
@@ -167,9 +169,10 @@ fn pre_check(
                 }
                 Err(e) => {
                     let article_json = serde_json::to_string(article).unwrap();
+                    let content_json = serde_json::to_string(&article_content).unwrap();
                     error!(
                         "save {} article {} failed, article:{},content:{}",
-                        rss_source.rss_type, article_json, e,article_content
+                        rss_source.rss_type, article_json, e,content_json
                     );
                     success = false;
                 }
