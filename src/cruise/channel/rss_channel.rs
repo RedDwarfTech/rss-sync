@@ -136,7 +136,9 @@ fn save_atom_channel_article(feed: Feed, rss_source: &RssSubSource) -> bool {
     feed.entries.iter().for_each(|item| {
         let _article: AddArticle = AddArticle::from_atom_entry(item, rss_source);
         let article_content = AddArticleContent::from_atom_entry(item);
-        success = pre_check(&_article, rss_source, article_content);
+        if !article_content.content.is_empty() {
+            success = pre_check(&_article, rss_source, article_content);
+        }
     });
     return success;
 }
