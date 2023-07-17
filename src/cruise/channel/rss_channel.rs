@@ -159,12 +159,16 @@ fn pre_check(
             match result {
                 std::result::Result::Ok(_ac) => {
                     let content = serde_json::to_string(&article_content).unwrap();
-                    let err_info = format!("save article failed.{}", content);
+                    let err_info =
+                        format!("save {} article failed.{}", rss_source.rss_type, content);
                     set_value(&article_cached_key, &content, 259200).expect(&err_info);
                 }
                 Err(e) => {
                     let article_json = serde_json::to_string(article).unwrap();
-                    error!("save article {} failed,{}", article_json, e);
+                    error!(
+                        "save {} article {} failed,{}",
+                        rss_source.rss_type, article_json, e
+                    );
                     success = false;
                 }
             }
