@@ -1,3 +1,5 @@
+use diesel::PgConnection;
+
 use crate::common::database::get_connection;
 use crate::diesel::RunQueryDsl;
 use crate::model::article::add_article::AddArticle;
@@ -10,6 +12,16 @@ pub fn insert_article(input_article: &AddArticle) -> Result<Option<Article>, die
         .values(input_article)
         .on_conflict_do_nothing()
         .get_result(&mut get_connection())
+        .optional();
+    return result;
+}
+
+pub fn trans_insert_article(input_article: &AddArticle, conn: &mut PgConnection) -> Result<Option<Article>, diesel::result::Error> {
+    use crate::model::diesel::dolphin::dolphin_schema::article::dsl::*;
+    let result = diesel::insert_into(article)
+        .values(input_article)
+        .on_conflict_do_nothing()
+        .get_result(conn)
         .optional();
     return result;
 }

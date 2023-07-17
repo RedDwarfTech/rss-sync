@@ -6,7 +6,8 @@ use crate::{
     },
     service::{
         article::{
-            article_content_service::insert_article_content, article_service::insert_article,
+            article_content_service::trans_insert_article_content,
+            article_service::trans_insert_article,
         },
         channel::channel_service::update_substatus,
     },
@@ -178,12 +179,12 @@ fn save_article_impl(
 ) -> Result<ArticleContent, diesel::result::Error> {
     let mut connection = get_connection();
     let result: Result<ArticleContent, diesel::result::Error> =
-        connection.transaction(|_connection| {
-            let add_result = insert_article(add_article)?;
+        connection.transaction(|trans_conn| {
+            let add_result = trans_insert_article(add_article, trans_conn)?;
             match add_result {
                 Some(ia) => {
                     add_article_content.article_id = ia.id;
-                    return insert_article_content(add_article_content);
+                    return trans_insert_article_content(add_article_content, trans_conn);
                 }
                 None => {
                     return Ok(ArticleContent::default());
