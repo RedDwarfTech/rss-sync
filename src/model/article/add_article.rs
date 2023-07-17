@@ -1,16 +1,16 @@
-
+use crate::model::diesel::dolphin::custom_dolphin_models::RssSubSource;
+use crate::model::diesel::dolphin::dolphin_schema::*;
+use chrono::NaiveDateTime;
 use feed_rs::model::Entry;
 use rss::Item;
 use rust_wheel::common::util::time_util::get_current_millisecond;
-use serde::Serialize;
 use serde::Deserialize;
-use crate::model::diesel::dolphin::custom_dolphin_models::RssSubSource;
-use crate::model::diesel::dolphin::dolphin_schema::*;
+use serde::Serialize;
 
-use chrono::DateTime;
 use chrono::offset::Utc;
+use chrono::DateTime;
 
-#[derive(Insertable,Queryable,QueryableByName,Debug,Serialize,Deserialize,Default,Clone)]
+#[derive(Insertable, Queryable, QueryableByName, Debug, Serialize, Deserialize, Default, Clone)]
 #[diesel(table_name = article)]
 pub struct AddArticle {
     pub user_id: i64,
@@ -29,18 +29,27 @@ pub struct AddArticle {
 }
 
 impl AddArticle {
-    pub(crate) fn from_atom_entry(request: &Entry, rss_source: &RssSubSource) ->Self {
-        let names: Vec<String> = request.authors.iter().map(|person| person.name.clone()).collect();
+    pub(crate) fn from_atom_entry(request: &Entry, rss_source: &RssSubSource) -> Self {
+        let names: Vec<String> = request
+            .authors
+            .iter()
+            .map(|person| person.name.clone())
+            .collect();
         let names_concatenated = names.join(",");
+        let article_pub_time = if request.published.is_some() {
+            request.published
+        } else {
+            Some(Utc::now())
+        };
         Self {
             user_id: 1,
             title: request.title.clone().unwrap().content,
             author: names_concatenated,
-            guid:  request.id.clone(),
+            guid: request.id.clone(),
             created_time: get_current_millisecond(),
             updated_time: get_current_millisecond(),
             link: request.links.first().map(|link| link.href.clone()),
-            pub_time: request.published,
+            pub_time: article_pub_time,
             sub_source_id: rss_source.id,
             cover_image: Some("".to_owned()),
             channel_reputation: 0,
@@ -49,17 +58,29 @@ impl AddArticle {
         }
     }
 
-    pub(crate) fn from_rss_entry(request: &Item,rss_source: &RssSubSource) ->Self {
+    pub(crate) fn from_rss_entry(request: &Item, rss_source: &RssSubSource) -> Self {
         let guid = request.guid.clone().unwrap_or_default();
+        let article_pub_time;
+        if request.pub_date.is_some() {
+            let parsed_datetime = NaiveDateTime::parse_from_str(
+                &request.pub_date.clone().unwrap(),
+                "%Y-%m-%d %H:%M:%S",
+            )
+            .expect("Failed to parse datetime");
+            let dt = DateTime::<Utc>::from_utc(parsed_datetime, Utc);
+            article_pub_time = Some(dt);
+        } else {
+            article_pub_time = Some(Utc::now());
+        };
         Self {
             user_id: 1,
             title: request.title.clone().unwrap(),
             author: request.author.clone().unwrap_or_default(),
             guid: guid.value,
             created_time: get_current_millisecond(),
-            updated_time:get_current_millisecond(),
+            updated_time: get_current_millisecond(),
             link: request.link.clone(),
-            pub_time: Some(Utc::now()),
+            pub_time: article_pub_time,
             sub_source_id: rss_source.id,
             cover_image: Some("".to_owned()),
             channel_reputation: 0,
