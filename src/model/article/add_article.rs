@@ -66,7 +66,7 @@ impl AddArticle {
             let parsed_datetime = NaiveDateTime::parse_from_str(
                 &request.pub_date.clone().unwrap(),
                 "%Y-%m-%d %H:%M:%S",
-            );
+            ).or_else(|_|NaiveDateTime::parse_from_str(&request.pub_date.clone().unwrap(), "%a, %d %b %Y %H:%M:%S %z"));
             match parsed_datetime {
                 Ok(parsed_pub_time) => {
                     let dt = DateTime::<Utc>::from_utc(parsed_pub_time, Utc);
