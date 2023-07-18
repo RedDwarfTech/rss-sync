@@ -2,6 +2,7 @@ use crate::model::diesel::dolphin::custom_dolphin_models::RssSubSource;
 use crate::model::diesel::dolphin::dolphin_schema::*;
 use chrono::NaiveDateTime;
 use feed_rs::model::Entry;
+use log::error;
 use rss::Item;
 use rust_wheel::common::util::time_util::get_current_millisecond;
 use serde::Deserialize;
@@ -60,15 +61,26 @@ impl AddArticle {
 
     pub(crate) fn from_rss_entry(request: &Item, rss_source: &RssSubSource) -> Self {
         let guid = request.guid.clone().unwrap_or_default();
-        let article_pub_time;
+        let mut article_pub_time= Some(Utc::now());
         if request.pub_date.is_some() {
             let parsed_datetime = NaiveDateTime::parse_from_str(
                 &request.pub_date.clone().unwrap(),
                 "%Y-%m-%d %H:%M:%S",
-            )
-            .expect("Failed to parse datetime");
-            let dt = DateTime::<Utc>::from_utc(parsed_datetime, Utc);
-            article_pub_time = Some(dt);
+            );
+            match parsed_datetime {
+                Ok(parsed_pub_time) => {
+                    let dt = DateTime::<Utc>::from_utc(parsed_pub_time, Utc);
+                    article_pub_time = Some(dt);
+                }
+                Err(e) => {
+                    let err_info: String = format!(
+                        "Failed to parse rss datetime,time:{:?},error:{}",
+                        request.pub_date.clone(),
+                        e
+                    );
+                    error!("{}", err_info);
+                }
+            }
         } else {
             article_pub_time = Some(Utc::now());
         };
