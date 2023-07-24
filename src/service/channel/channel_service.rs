@@ -27,6 +27,7 @@ pub fn get_fresh_channel() -> Vec<RssSubSource> {
     query = query.filter(channel_table::censor_status.eq(1));
     query = query.filter(channel_table::next_trigger_time.lt(SystemTime::now()));
     let cvs = query
+        .order(channel_table::last_trigger_time.asc())
         .limit(5)
         .load::<RssSubSource>(&mut get_connection())
         .expect("error get ready sub channel list");
