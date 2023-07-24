@@ -1,5 +1,6 @@
 use crate::model::diesel::dolphin::custom_dolphin_models::RssSubSource;
 use crate::model::diesel::dolphin::dolphin_schema::*;
+use chrono::NaiveDateTime;
 use feed_rs::model::Entry;
 use log::error;
 use rss::Item;
@@ -60,14 +61,17 @@ impl AddArticle {
 
     pub(crate) fn from_rss_entry(request: &Item, rss_source: &RssSubSource) -> Self {
         let guid = request.guid.clone().unwrap_or_default();
-        let mut article_pub_time= Some(Utc::now());
+        let mut article_pub_time = Some(Utc::now());
         if request.pub_date.is_some() {
-            let parsed_datetime = DateTime::parse_from_rfc2822(
-                &request.pub_date.clone().unwrap(),
-            ).map(|dt| dt.with_timezone(&Utc));
+            let one_of_time_str = &request.pub_date.clone().unwrap();
+            let parsed_datetime =
+                NaiveDateTime::parse_from_str(one_of_time_str, "%Y-%m-%d %H:%M:%S").or_else(|_| {
+                    NaiveDateTime::parse_from_str(one_of_time_str, "%a, %d %b %Y %H:%M:%S %Z")
+                });
             match parsed_datetime {
                 Ok(parsed_pub_time) => {
-                    article_pub_time = Some(parsed_pub_time);
+                    let ndt = DateTime::<Utc>::from_utc(parsed_pub_time, Utc);
+                    article_pub_time = Some(ndt);
                 }
                 Err(e) => {
                     let err_info: String = format!(
