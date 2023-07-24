@@ -5,7 +5,7 @@ use crate::diesel::RunQueryDsl;
 use crate::{
     common::database::get_connection, model::diesel::dolphin::custom_dolphin_models::RssSubSource,
 };
-use chrono::{NaiveDateTime, Utc};
+use chrono::{NaiveDateTime, Utc, Local};
 use cron::Schedule;
 use diesel::{ExpressionMethods, QueryDsl};
 use rust_wheel::common::util::time_util::get_current_millisecond;
@@ -55,6 +55,7 @@ pub fn update_pulled_channel(channel: RssSubSource) -> Result<RssSubSource, dies
         .set((
             next_trigger_time.eq(next_time),
             updated_time.eq(get_current_millisecond()),
+            last_trigger_time.eq(Local::now())
         ))
         .get_result::<RssSubSource>(&mut get_connection());
     return update_result;
