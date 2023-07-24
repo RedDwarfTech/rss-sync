@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use crate::{
     common::database::get_connection,
     model::{
@@ -14,10 +16,10 @@ use crate::{
 };
 use diesel::Connection;
 use feed_rs::{model::Feed, parser};
-use log::error;
+use log::{error, info};
 use reqwest::{
-    header::{HeaderMap, HeaderValue},
-    Client, Response,
+    header::{HeaderMap, HeaderValue, ETAG},
+    Client, Response, StatusCode,
 };
 use rss::Channel;
 use rust_wheel::config::cache::redis_util::{set_value, sync_get_str};
@@ -29,12 +31,16 @@ pub async fn fetch_channel_article(source: RssSubSource) -> bool {
         .build()
         .unwrap_or_default();
     let url: &str = &source.sub_url.clone();
-    let response = client.get(url).headers(construct_headers()).send().await;
+    let response = client.get(url).headers(construct_headers(&source.etag)).send().await;
     match response {
         Ok(resp) => {
             return handle_channel_resp(resp, source).await;
         }
         Err(e) => {
+            if e.status().unwrap() == StatusCode::NOT_MODIFIED {
+                info!("sub source did not modified, {}", e);
+                return true;
+            }
             error!(
                 "pull channel url {} facing error:{},code:{:?}",
                 url,
@@ -163,8 +169,10 @@ fn pre_check(
             match result {
                 std::result::Result::Ok(_ac) => {
                     let content = serde_json::to_string(&article_content).unwrap();
-                    let err_info =
-                        format!("save {} article failed. content:{}", rss_source.rss_type, content);
+                    let err_info = format!(
+                        "save {} article failed. content:{}",
+                        rss_source.rss_type, content
+                    );
                     set_value(&article_cached_key, &content, 259200).expect(&err_info);
                 }
                 Err(e) => {
@@ -172,7 +180,7 @@ fn pre_check(
                     let content_json = serde_json::to_string(&article_content).unwrap();
                     error!(
                         "save {} article {} failed, article:{},content:{}",
-                        rss_source.rss_type, article_json, e,content_json
+                        rss_source.rss_type, article_json, e, content_json
                     );
                     success = false;
                 }
@@ -203,7 +211,7 @@ fn save_article_impl(
     return result;
 }
 
-fn construct_headers() -> HeaderMap {
+fn construct_headers(etag: &Option<String>) ->HeaderMap {
     let mut headers = HeaderMap::new();
     headers.insert("User-Agent", HeaderValue::from_static("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36"));
     headers.insert("Accept", HeaderValue::from_static("text/html"));
@@ -211,5 +219,22 @@ fn construct_headers() -> HeaderMap {
         "Referer",
         HeaderValue::from_static("https://www.google.com"),
     );
+    if let Some(etag) = etag {
+        let etag_val = etag.as_str();
+        let etag_without_quotes = process_string(Cow::Borrowed(etag_val));
+        let etag_result = etag_without_quotes.to_owned();
+        headers.insert(ETAG, HeaderValue::from_str(&etag_result).unwrap());
+    }
     headers
+}
+
+fn process_string(input: Cow<str>) -> String {
+    if input.starts_with('"') && input.ends_with('"') {
+        let mut mutable_input = input.into_owned();
+        mutable_input.remove(0);
+        mutable_input.pop();
+        mutable_input
+    } else {
+        input.into_owned()
+    }
 }
