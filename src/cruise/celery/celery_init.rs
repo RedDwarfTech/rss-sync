@@ -10,7 +10,6 @@ use crate::{
 };
 use celery::{prelude::TaskError, task::TaskResult, Celery};
 use log::{error, info};
-use tokio::runtime::Runtime;
 
 #[celery::task]
 async fn add(x: i64, y: i32) -> TaskResult<i64> {
@@ -63,7 +62,7 @@ pub async fn init_impl(opt: &CeleryOpt) -> Result<(), Box<dyn std::error::Error 
                     match task.as_str() {
                         "add" => {
                             if get_task_count() < 5 {
-                                send_task(&rss_app);
+                                send_task(&rss_app).await;
                             }
                         }
                         _ => error!("unknown task"),
@@ -77,29 +76,26 @@ pub async fn init_impl(opt: &CeleryOpt) -> Result<(), Box<dyn std::error::Error 
     Ok(())
 }
 
-pub fn send_task(rss_app: &Arc<Celery>) {
+pub async fn send_task(rss_app: &Arc<Celery>) {
     let refresh_rss: Vec<RssSubSource> = get_fresh_channel();
     if refresh_rss.is_empty() {
         info!("no rss source need to update");
         return;
     }
-    let rt = Runtime::new().unwrap();
-    rt.block_on(async {
-        for rss_record in refresh_rss {
-            let send_result = rss_app.send_task(add::new(rss_record.id, 2)).await;
-            match send_result {
-                Ok(_) => {
-                    handle_send_ok(&rss_record);
-                },
-                Err(e) => {
-                    error!("send task to redis failed, {}",e)
-                },
+    for rss_record in refresh_rss {
+        let send_result = rss_app.send_task(add::new(rss_record.id, 2)).await;
+        match send_result {
+            Ok(_) => {
+                handle_send_ok(&rss_record);
+            }
+            Err(e) => {
+                error!("send task to redis failed, {}", e)
             }
         }
-    });
+    }
 }
 
-pub fn handle_send_ok(rss_record: &RssSubSource){
+pub fn handle_send_ok(rss_record: &RssSubSource) {
     let result = update_pulled_channel(&rss_record);
     match result {
         Ok(_) => {}
