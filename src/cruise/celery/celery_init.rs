@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     cache::redis_rss::get_task_count,
     cruise::{channel::rss_channel::fetch_channel_article, models::appenum::celery_opt::CeleryOpt},
@@ -6,8 +8,9 @@ use crate::{
         get_channel_by_id, get_fresh_channel, update_pulled_channel,
     },
 };
-use celery::{prelude::TaskError, task::TaskResult};
+use celery::{prelude::TaskError, task::TaskResult, Celery};
 use log::{error, info};
+use tokio::runtime::Runtime;
 
 #[celery::task]
 async fn add(x: i64, y: i32) -> TaskResult<i64> {
@@ -34,7 +37,7 @@ async fn handle_add(channel_id: i64) -> bool {
 pub async fn init_impl(opt: &CeleryOpt) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let redis_addr =
         std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379/".into());
-    let rss_app = celery::app!(
+    let rss_app: Arc<Celery> = celery::app!(
         broker = RedisBroker { redis_addr },
         tasks = [
             add
@@ -59,13 +62,8 @@ pub async fn init_impl(opt: &CeleryOpt) -> Result<(), Box<dyn std::error::Error 
                 for task in tasks {
                     match task.as_str() {
                         "add" => {
-                            if get_task_count() < 1 {
-                                let refresh_rss: Vec<RssSubSource> = get_fresh_channel();
-                                if !refresh_rss.is_empty() {
-                                    let rss_record = refresh_rss[0].clone();
-                                    rss_app.send_task(add::new(rss_record.id, 2)).await?;
-                                    let _result = update_pulled_channel(rss_record);
-                                }
+                            if get_task_count() < 5 {
+                                send_task(&rss_app);
                             }
                         }
                         _ => error!("unknown task"),
@@ -77,4 +75,36 @@ pub async fn init_impl(opt: &CeleryOpt) -> Result<(), Box<dyn std::error::Error 
 
     rss_app.close().await?;
     Ok(())
+}
+
+pub fn send_task(rss_app: &Arc<Celery>) {
+    let refresh_rss: Vec<RssSubSource> = get_fresh_channel();
+    if refresh_rss.is_empty() {
+        info!("no rss source need to update");
+        return;
+    }
+    let rt = Runtime::new().unwrap();
+    rt.block_on(async {
+        for rss_record in refresh_rss {
+            let send_result = rss_app.send_task(add::new(rss_record.id, 2)).await;
+            match send_result {
+                Ok(_) => {
+                    handle_send_ok(&rss_record);
+                },
+                Err(e) => {
+                    error!("send task to redis failed, {}",e)
+                },
+            }
+        }
+    });
+}
+
+pub fn handle_send_ok(rss_record: &RssSubSource){
+    let result = update_pulled_channel(&rss_record);
+    match result {
+        Ok(_) => {}
+        Err(e) => {
+            error!("update pulled channel failed, {}", e);
+        }
+    }
 }

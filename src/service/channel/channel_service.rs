@@ -27,7 +27,7 @@ pub fn get_fresh_channel() -> Vec<RssSubSource> {
     query = query.filter(channel_table::censor_status.eq(1));
     query = query.filter(channel_table::next_trigger_time.lt(SystemTime::now()));
     let cvs = query
-        .limit(1)
+        .limit(5)
         .load::<RssSubSource>(&mut get_connection())
         .expect("error get ready sub channel list");
     return cvs;
@@ -46,7 +46,7 @@ pub fn update_substatus(
     return update_result;
 }
 
-pub fn update_pulled_channel(channel: RssSubSource) -> Result<RssSubSource, diesel::result::Error> {
+pub fn update_pulled_channel(channel: &RssSubSource) -> Result<RssSubSource, diesel::result::Error> {
     use crate::model::diesel::dolphin::dolphin_schema::rss_sub_source::dsl::*;
     let predicate =
         crate::model::diesel::dolphin::dolphin_schema::rss_sub_source::id.eq(channel.id);
