@@ -173,7 +173,7 @@ fn pre_check(
                         "save {} article failed. content:{}",
                         rss_source.rss_type, content
                     );
-                    set_value(&article_cached_key, &content, 259200).expect(&err_info);
+                    set_value(&article_cached_key, "1", 259200).expect(&err_info);
                 }
                 Err(e) => {
                     let article_json = serde_json::to_string(article).unwrap();
