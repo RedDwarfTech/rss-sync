@@ -61,7 +61,7 @@ pub async fn init_impl(opt: &CeleryOpt) -> Result<(), Box<dyn std::error::Error 
                 for task in tasks {
                     match task.as_str() {
                         "add" => {
-                            if get_task_count() < 5 {
+                            if get_task_count() < 2 {
                                 send_task(&rss_app).await;
                             }
                         }
