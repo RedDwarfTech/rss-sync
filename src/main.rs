@@ -21,7 +21,7 @@ async fn main() {
 }
 
 async fn handle_task() {
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
     let opt = CeleryOpt::from_args();
     match &opt {
         CeleryOpt::Consume => {

@@ -25,6 +25,7 @@ redis = { version = "0.23.0", features = ["tokio-comp"] }
 cron = "0.11"
 jemallocator = "0.3.2"
 jemalloc-ctl = "0.3.2"
+log4rs = "1.2.0"
 
 [dependencies.jemalloc-sys]
 version = "0.3.2"
