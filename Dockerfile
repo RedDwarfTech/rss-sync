@@ -12,4 +12,4 @@ COPY --from=builder /home/rust/src/log4rs.yaml /app
 COPY --from=builder /home/rust/src/scripts /app/
 COPY --from=builder /home/rust/src/target/x86_64-unknown-linux-musl/release/rss-sync /app/
 RUN apk update && apk add curl
-CMD ["sh","./startup-app.sh"]
+CMD ["./rss-sync"]

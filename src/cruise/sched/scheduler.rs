@@ -2,7 +2,6 @@ use std::time::Duration;
 
 use log::{info, error};
 use tokio::time;
-
 use crate::cruise::{celery::celery_init::init_impl, models::appenum::celery_opt::CeleryOpt};
 
 pub async fn check_tpl_task(opt: &CeleryOpt) {

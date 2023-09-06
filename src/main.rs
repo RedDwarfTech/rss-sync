@@ -6,6 +6,7 @@ extern crate diesel;
 use crate::cruise::models::appenum::celery_opt::CeleryOpt;
 use cruise::celery::celery_init::init_impl;
 use cruise::sched::scheduler::check_tpl_task;
+use log::error;
 use std::thread;
 
 pub mod cache;
@@ -16,6 +17,10 @@ pub mod service;
 
 #[tokio::main]
 async fn main() {
+    let log_result = log4rs::init_file("log4rs.yaml", Default::default());
+    if let Err(e) = log_result {
+        error!("init log failed, {}", e);
+    }
     let produce_thread = thread::spawn(|| {
         tokio::runtime::Runtime::new().unwrap().block_on(async {
             let tasks = vec!["add".to_string()];
@@ -34,10 +39,12 @@ async fn main() {
 }
 
 async fn handle_task(opt: &CeleryOpt) {
-    log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
     match &opt {
         CeleryOpt::Consume => {
-            let _result = init_impl(&opt).await;
+            let result = init_impl(&opt).await;
+            if let Err(e) = result {
+                error!("start consume celery failed, {}", e);
+            }
         }
         CeleryOpt::Produce { tasks: _ } => {
             check_tpl_task(&opt).await;

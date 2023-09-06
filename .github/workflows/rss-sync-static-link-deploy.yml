@@ -27,7 +27,7 @@ jobs:
       uses: docker/build-push-action@v3
       with:
         context: .
-        file: Dockerfile.static-link
+        file: Dockerfile
         push: true
         tags: ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/reddwarf-pro/rss-sync:${{ github.sha }} 
 
