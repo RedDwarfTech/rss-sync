@@ -179,8 +179,8 @@ fn pre_check(
                     let article_json = serde_json::to_string(article).unwrap();
                     let content_json = serde_json::to_string(&article_content).unwrap();
                     error!(
-                        "save {} article {} failed, article:{},content:{}",
-                        rss_source.rss_type, article_json, e, content_json
+                        "save {} article failed, article:{},content:{},error: {}",
+                        rss_source.rss_type, article_json, content_json,e
                     );
                     success = false;
                 }
