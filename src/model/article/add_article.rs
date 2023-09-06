@@ -1,5 +1,6 @@
 use crate::model::diesel::dolphin::custom_dolphin_models::RssSubSource;
 use crate::model::diesel::dolphin::dolphin_schema::*;
+use chrono::NaiveDate;
 use chrono::NaiveDateTime;
 use feed_rs::model::Entry;
 use log::error;
@@ -72,9 +73,11 @@ impl AddArticle {
                 }.or_else(|_|{
                     NaiveDateTime::parse_from_str(one_of_time_str, "%Y-%m-%dT%H:%M:%S%z")
                 }.or_else(|_|{
-                    NaiveDateTime::parse_from_str(one_of_time_str, "%Y-%m-%d")
-                }.or_else(|_|{
                     NaiveDateTime::parse_from_str(one_of_time_str, "%Y-%m-%dT%H:%M:%S%.3fZ")
+                }.or_else(|_|{
+                    let parsed_date = NaiveDate::parse_from_str(one_of_time_str, "%Y-%m-%d");
+                    let parsed_dt = NaiveDateTime::new(parsed_date.unwrap(), chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap());
+                    return Ok::<NaiveDateTime, chrono::ParseError>(parsed_dt);
                 })))));
             match parsed_datetime {
                 Ok(parsed_pub_time) => {
