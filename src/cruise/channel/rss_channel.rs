@@ -47,7 +47,10 @@ pub async fn fetch_channel_article(source: RssSubSource) -> bool {
                 e,
                 e.status()
             );
-            let _result = update_substatus(source, -5);
+            let result = update_substatus(source, -5);
+            if let Err(e) = result {
+                error!("sub source did not update,error: {}", e);
+            }
             return true;
         }
     }
@@ -142,10 +145,10 @@ fn save_atom_channel_article(feed: Feed, rss_source: &RssSubSource) -> bool {
     }
     let mut success = true;
     feed.entries.iter().for_each(|item| {
-        let _article: AddArticle = AddArticle::from_atom_entry(item, rss_source);
+        let article: AddArticle = AddArticle::from_atom_entry(item, rss_source);
         let article_content = AddArticleContent::from_atom_entry(item);
-        if !article_content.content.is_empty() {
-            success = pre_check(&_article, rss_source, article_content);
+        if !article_content.content.is_empty() && !article.title.is_empty() {
+            success = pre_check(&article, rss_source, article_content);
         }
     });
     return success;

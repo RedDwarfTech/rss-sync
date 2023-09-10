@@ -12,12 +12,12 @@ use celery::{prelude::TaskError, task::TaskResult, Celery};
 use log::{error, info};
 
 #[celery::task]
-async fn add(x: i64, y: i32) -> TaskResult<i64> {
-    info!("consumed message:{}{}", x, y);
+async fn add(x: i64, _y: i32) -> TaskResult<i64> {
     let success = handle_add(x).await;
     if success {
         Ok(x)
     } else {
+        error!("failed to add message, channel_id:{}", x);
         Err(TaskError::from(TaskError::UnexpectedError(
             "article pull error message".to_string(),
         )))
