@@ -22,7 +22,10 @@ use reqwest::{
     Client, Response, StatusCode,
 };
 use rss::Channel;
-use rust_wheel::{config::cache::redis_util::{set_value, sync_get_str}, cruise::channel_status::ChannelStatus};
+use rust_wheel::{
+    config::cache::redis_util::{set_value, sync_get_str},
+    cruise::channel_status::ChannelStatus,
+};
 
 pub async fn fetch_channel_article(source: RssSubSource) -> bool {
     // https://stackoverflow.com/questions/65977261/how-can-i-accept-invalid-or-self-signed-ssl-certificates-in-rust-futures-reqwest
@@ -31,7 +34,11 @@ pub async fn fetch_channel_article(source: RssSubSource) -> bool {
         .build()
         .unwrap_or_default();
     let url: &str = &source.sub_url.clone();
-    let response = client.get(url).headers(construct_headers(&source.etag)).send().await;
+    let response = client
+        .get(url)
+        .headers(construct_headers(&source.etag))
+        .send()
+        .await;
     match response {
         Ok(resp) => {
             return handle_channel_resp(resp, source).await;
@@ -42,9 +49,13 @@ pub async fn fetch_channel_article(source: RssSubSource) -> bool {
                 let channel_str = serde_json::to_string(&source);
                 let result = update_substatus(source, ChannelStatus::URLError as i32);
                 if let Err(e) = result {
-                    error!("update channel facing issue,{}",e);
+                    error!("update channel facing issue,{}", e);
                 }
-                error!("null status code, e: {}, source: {}", e, channel_str.unwrap());
+                error!(
+                    "null status code, e: {}, source: {}",
+                    e,
+                    channel_str.unwrap()
+                );
                 return false;
             }
             if e.status().unwrap() == StatusCode::NOT_MODIFIED {
@@ -140,6 +151,9 @@ fn save_rss_channel_article(channel: Channel, rss_source: &RssSubSource) -> bool
     }
     let mut success = true;
     channel.items.iter().for_each(|item| {
+        if item.title.is_none() {
+            return;
+        }
         let article: AddArticle = AddArticle::from_rss_entry(item, &rss_source);
         let article_content = AddArticleContent::from_rss_entry(item);
         if !article_content.content.is_empty() {
@@ -193,7 +207,7 @@ fn pre_check(
                     let content_json = serde_json::to_string(&article_content).unwrap();
                     error!(
                         "save {} article failed, article:{},content:{},error: {}",
-                        rss_source.rss_type, article_json, content_json,e
+                        rss_source.rss_type, article_json, content_json, e
                     );
                     success = false;
                 }
@@ -224,7 +238,7 @@ fn save_article_impl(
     return result;
 }
 
-fn construct_headers(etag: &Option<String>) ->HeaderMap {
+fn construct_headers(etag: &Option<String>) -> HeaderMap {
     let mut headers = HeaderMap::new();
     headers.insert("User-Agent", HeaderValue::from_static("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36"));
     headers.insert("Accept", HeaderValue::from_static("text/html"));
