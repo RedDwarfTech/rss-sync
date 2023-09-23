@@ -22,7 +22,7 @@ use reqwest::{
     Client, Response, StatusCode,
 };
 use rss::Channel;
-use rust_wheel::config::cache::redis_util::{set_value, sync_get_str};
+use rust_wheel::{config::cache::redis_util::{set_value, sync_get_str}, cruise::channel_status::ChannelStatus};
 
 pub async fn fetch_channel_article(source: RssSubSource) -> bool {
     // https://stackoverflow.com/questions/65977261/how-can-i-accept-invalid-or-self-signed-ssl-certificates-in-rust-futures-reqwest
@@ -40,6 +40,10 @@ pub async fn fetch_channel_article(source: RssSubSource) -> bool {
             let status_code = e.status();
             if status_code.is_none() {
                 let channel_str = serde_json::to_string(&source);
+                let result = update_substatus(source, ChannelStatus::URLError as i32);
+                if let Err(e) = result {
+                    error!("update channel facing issue,{}",e);
+                }
                 error!("null status code, e: {}, source: {}", e, channel_str.unwrap());
                 return false;
             }
