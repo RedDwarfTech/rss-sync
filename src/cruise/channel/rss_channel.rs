@@ -37,6 +37,12 @@ pub async fn fetch_channel_article(source: RssSubSource) -> bool {
             return handle_channel_resp(resp, source).await;
         }
         Err(e) => {
+            let status_code = e.status();
+            if status_code.is_none() {
+                let channel_str = serde_json::to_string(&source);
+                error!("null status code, e: {}, source: {}", e, channel_str.unwrap());
+                return false;
+            }
             if e.status().unwrap() == StatusCode::NOT_MODIFIED {
                 info!("sub source did not modified, {}", e);
                 return true;
