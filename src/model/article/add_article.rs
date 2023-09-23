@@ -76,7 +76,11 @@ impl AddArticle {
                     NaiveDateTime::parse_from_str(one_of_time_str, "%Y-%m-%dT%H:%M:%S%.3fZ")
                 }.or_else(|_|{
                     let parsed_date = NaiveDate::parse_from_str(one_of_time_str, "%Y-%m-%d");
-                    let parsed_dt = NaiveDateTime::new(parsed_date.unwrap(), chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap());
+                    if let Err(e) = parsed_date {
+                        error!("parsed date failed, {}, date: {}", e, one_of_time_str);
+                    }
+                    let default_time = chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap();
+                    let parsed_dt = NaiveDateTime::new(parsed_date.unwrap(), default_time);
                     return Ok::<NaiveDateTime, chrono::ParseError>(parsed_dt);
                 })))));
             match parsed_datetime {
