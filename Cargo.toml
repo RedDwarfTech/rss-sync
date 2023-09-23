@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-celery="0.5.3"
+celery="0.5.4"
 env_logger="0.10.0"
 tokio = { version = "1.29.1", features = ["full"] }
 structopt = "0.3"

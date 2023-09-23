@@ -81,7 +81,7 @@ impl AddArticle {
                 })))));
             match parsed_datetime {
                 Ok(parsed_pub_time) => {
-                    let ndt = DateTime::<Utc>::from_utc(parsed_pub_time, Utc);
+                    let ndt = DateTime::<Utc>::from_naive_utc_and_offset(parsed_pub_time, Utc);
                     article_pub_time = Some(ndt);
                 }
                 Err(e) => {
