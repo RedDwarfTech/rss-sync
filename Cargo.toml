@@ -26,6 +26,8 @@ cron = "0.11"
 jemallocator = "0.3.2"
 jemalloc-ctl = "0.3.2"
 log4rs = "1.2.0"
+prometheus = "0.13.3"
+actix-web = "4"
 
 [dependencies.jemalloc-sys]
 version = "0.3.2"
