@@ -2,6 +2,7 @@ use crate::model::request::profile::profile_active_req::ProfileActiveReq;
 use actix_web::web;
 use actix_web::HttpResponse;
 use jemalloc_ctl::{Access, AsName};
+use prometheus::{self, Encoder, TextEncoder};
 use rust_wheel::common::wrapper::actix_http_resp::box_actix_rest_response;
 
 const PROF_ACTIVE: &'static [u8] = b"prof.active\0";
@@ -23,12 +24,19 @@ pub async fn do_active(form: web::Query<ProfileActiveReq>) -> HttpResponse {
 }
 
 pub async fn metrics() -> HttpResponse {
-    HttpResponse::Ok().body("Hello, World!")
+    let mut buffer = Vec::new();
+    let encoder = TextEncoder::new();
+    // Gather the metrics.
+    let metric_families = prometheus::gather();
+    // Encode them to send.
+    encoder.encode(&metric_families, &mut buffer).unwrap();
+    let output = String::from_utf8(buffer.clone()).unwrap();
+    HttpResponse::Ok().body(output)
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(
-        web::scope("/tex/profile")
+        web::scope("/rss/profile")
             .route("/dump", web::get().to(do_dump))
             .route("/active", web::get().to(do_active))
             .route("/metrics", web::get().to(metrics)),
