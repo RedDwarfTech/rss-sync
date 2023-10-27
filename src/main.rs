@@ -4,13 +4,14 @@ extern crate openssl;
 extern crate diesel;
 
 use crate::cruise::models::appenum::celery_opt::CeleryOpt;
+use actix_web::{App, HttpServer};
 use common::monitor::profile_controller;
 use cruise::celery::celery_init::init_impl;
 use cruise::sched::scheduler::check_tpl_task;
 use log::error;
 use rust_wheel::config::app::app_conf_reader::get_app_config;
 use std::thread;
-use actix_web::{App, HttpServer};
+use tokio::task;
 
 pub mod cache;
 pub mod common;
@@ -19,7 +20,7 @@ pub mod model;
 pub mod service;
 
 #[actix_web::main]
-async fn main() -> std::io::Result<()>{
+async fn main() -> std::io::Result<()> {
     let log_result = log4rs::init_file("log4rs.yaml", Default::default());
     if let Err(e) = log_result {
         error!("init log failed, {}", e);
@@ -37,18 +38,19 @@ async fn main() -> std::io::Result<()>{
         });
     });
 
-    produce_thread.join().unwrap();
-    consume_thread.join().unwrap();
+    task::spawn_blocking({
+        || {
+            produce_thread.join().unwrap();
+            consume_thread.join().unwrap();
+        }
+    });
 
     let port: u16 = get_app_config("rsssync.port").parse().unwrap();
     let address = ("0.0.0.0", port);
-    HttpServer::new(|| {
-        App::new()
-            .configure(profile_controller::config)
-    })
-    .bind(address)?
-    .run()
-    .await
+    HttpServer::new(|| App::new().configure(profile_controller::config))
+        .bind(address)?
+        .run()
+        .await
 }
 
 async fn handle_task(opt: &CeleryOpt) {
