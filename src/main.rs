@@ -5,7 +5,7 @@ extern crate diesel;
 
 use crate::cruise::models::appenum::celery_opt::CeleryOpt;
 use actix_web::{App, HttpServer};
-use common::monitor::profile_controller;
+use common::monitor::{profile_controller, health_controller};
 use cruise::celery::celery_init::init_impl;
 use cruise::sched::scheduler::check_tpl_task;
 use log::error;
@@ -47,10 +47,14 @@ async fn main() -> std::io::Result<()> {
 
     let port: u16 = get_app_config("rsssync.port").parse().unwrap();
     let address = ("0.0.0.0", port);
-    HttpServer::new(|| App::new().configure(profile_controller::config))
-        .bind(address)?
-        .run()
-        .await
+    HttpServer::new(|| {
+        App::new()
+            .configure(profile_controller::config)
+            .configure(health_controller::config)
+    })
+    .bind(address)?
+    .run()
+    .await
 }
 
 async fn handle_task(opt: &CeleryOpt) {
